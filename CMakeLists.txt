@@ -12,53 +12,36 @@ project(
 
 include(cmake/project-is-top-level.cmake)
 include(cmake/variables.cmake)
+include(cmake/source-tree.cmake)
 
 # ---- Declare library ----
 
+SET(All)
+SET(Public)
+
+StartSource(include/cpp-serializer)
+
 add_library(
-    cpp-serializer_cpp-serializer
-    source/cpp-serializer.cpp
+    cpp-serializer_cpp-serializer INTERFACE
+    ${All}
 )
 add_library(cpp-serializer::cpp-serializer ALIAS cpp-serializer_cpp-serializer)
 
-include(GenerateExportHeader)
-generate_export_header(
-    cpp-serializer_cpp-serializer
-    BASE_NAME cpp-serializer
-    EXPORT_FILE_NAME export/cpp-serializer/cpp-serializer_export.hpp
-    CUSTOM_CONTENT_FROM_VARIABLE pragma_suppress_c4251
-)
-
-if(NOT BUILD_SHARED_LIBS)
-  target_compile_definitions(cpp-serializer_cpp-serializer PUBLIC CPP_SERIALIZER_STATIC_DEFINE)
-endif()
-
 set_target_properties(
     cpp-serializer_cpp-serializer PROPERTIES
-    CXX_VISIBILITY_PRESET hidden
-    VISIBILITY_INLINES_HIDDEN YES
-    VERSION "${PROJECT_VERSION}"
-    SOVERSION "${PROJECT_VERSION_MAJOR}"
     EXPORT_NAME cpp-serializer
-    OUTPUT_NAME cpp-serializer
 )
 
 target_include_directories(
     cpp-serializer_cpp-serializer ${warning_guard}
-    PUBLIC
+    INTERFACE
     "\$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>"
 )
 
-target_include_directories(
-    cpp-serializer_cpp-serializer SYSTEM
-    PUBLIC
-    "\$<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/export>"
-)
-
-target_compile_features(cpp-serializer_cpp-serializer PUBLIC cxx_std_20)
+target_compile_features(cpp-serializer_cpp-serializer INTERFACE cxx_std_20)
 
 find_package(fmt REQUIRED)
-target_link_libraries(cpp-serializer_cpp-serializer PRIVATE fmt::fmt)
+target_link_libraries(cpp-serializer_cpp-serializer INTERFACE fmt::fmt)
 
 # ---- Install rules ----
 

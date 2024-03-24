@@ -32,3 +32,5 @@
 *.app
 
 build/
+vcpkg_installed/
+.cache/
