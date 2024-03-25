@@ -1,6 +1,7 @@
 #pragma once
 
 #include "data-concepts.hpp"
+#include "location.hpp"
 
 #include <variant>
 
@@ -20,13 +21,12 @@ namespace CPPSerializer::internal {
     struct datamaphelper {
         using Type = TraitType::KeyType;
     };
-
+    
     template<class TraitType>
     struct datamaphelper<false, TraitType> {
         using Type = void;
-
     };
-
+    
     template<bool HasSequence, class TraitType>
     struct dataindexhelper {
         using Type = TraitType::IndexType;
@@ -37,7 +37,7 @@ namespace CPPSerializer::internal {
         using Type = void;
 
     };
-
+    
     template<bool HasSequence, class TraitType>
     struct datasequencehelper {
         using Type = TraitType::SequenceType;
@@ -47,8 +47,8 @@ namespace CPPSerializer::internal {
     struct datasequencehelper<false, TraitType> {
         using Type = void;
     };
-
-
+    
+    
     template<DataTraitConcept TraitType>
     struct dataoptionalhelper {
         using IndexType = dataindexhelper<TraitType::HasSequence(), typename TraitType::IndexType>;
@@ -57,7 +57,7 @@ namespace CPPSerializer::internal {
         using MapType = datamaphelper<TraitType::HasMap(), typename TraitType::MapType>;
     };
 
-
+    
     
     template<
         bool Vector, bool Map, class IndexType, class KeyType, 
@@ -92,7 +92,7 @@ namespace CPPSerializer::internal {
     protected:
         std::variant<std::nullptr_t, StorageType, MapType> data;
     };
-
+    
     template<class StorageType>
     class datadatahelper<false, false, void, void, StorageType, void, void> {
     protected:
@@ -100,6 +100,7 @@ namespace CPPSerializer::internal {
     };
     
     template<
+        DataTraitConcept DataTraits,
         bool Vector, bool Map, class IndexType, class KeyType, 
         class StorageType, class SequenceType, class MapType
     > 
@@ -115,14 +116,18 @@ namespace CPPSerializer::internal {
             
             return false;
         }
+    
+    protected:
+        std::map<KeyType, Location<DataTraits::HasFileOffset(), DataTraits::HasSkipList()>> key_locations;
     };
     
-
+    
     template<
+        DataTraitConcept DataTraits,
         bool Vector, class IndexType, 
         class StorageType, class SequenceType
     > 
-    class datahelper<Vector, false, IndexType, void, StorageType, SequenceType, void> : 
+    class datahelper<DataTraits, Vector, false, IndexType, void, StorageType, SequenceType, void> : 
         public datadatahelper<Vector, false, IndexType, void, StorageType, SequenceType, void> 
     { };
 

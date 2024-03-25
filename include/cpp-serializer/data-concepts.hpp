@@ -7,13 +7,15 @@
     
 
 namespace CPPSerializer {
-
+    
+    template<class OffsetType>
     struct Context;
+
     template<bool Offset, bool SkipList>
     struct Location;
     
     template <class T_, class StorageType, class LocationType>
-    concept TypeConverterConcept = requires(T_ t, Context c, std::string_view s) {
+    concept TypeConverterConcept = requires(T_ t, Context<LocationType> c, std::string_view s) {
         {t(c, s)} -> std::same_as<std::pair<LocationType, StorageType>>;
     };
     
@@ -30,7 +32,7 @@ namespace CPPSerializer {
         
         t.insert(k, d);
     };
-
+    
     template<class T_, class Key, class Data>
     concept SequenceConcept = requires (T_ t, Key k, Data d) {
         requires std::forward_iterator<decltype(begin(t))>;
