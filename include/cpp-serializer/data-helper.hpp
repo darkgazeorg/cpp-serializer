@@ -118,7 +118,7 @@ namespace CPPSerializer::internal {
         }
     
     protected:
-        std::map<KeyType, Location<DataTraits::HasFileOffset(), DataTraits::HasSkipList()>> key_locations;
+        std::map<KeyType, Location<DataTraits::HasOffset(), DataTraits::HasSkipList()>> key_locations;
     };
     
     

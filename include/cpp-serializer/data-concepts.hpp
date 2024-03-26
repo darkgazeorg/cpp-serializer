@@ -14,36 +14,56 @@ namespace CPPSerializer {
     template<bool Offset, bool SkipList>
     struct Location;
     
+    /**
+     * Type converter concepts will take a context and a string and should convert that string
+     * to a type that is compatible with the selected storage type. It also should convert the 
+     * context to the location type that is selected.
+     */
     template <class T_, class StorageType, class LocationType>
     concept TypeConverterConcept = requires(T_ t, Context<LocationType> c, std::string_view s) {
         {t(c, s)} -> std::same_as<std::pair<LocationType, StorageType>>;
     };
     
+    /**
+     * This concept defines an std::map like Map type. The map type should at least have
+     * begin/end iterator, insert, erase, at and find functions as well as member access 
+     * operator.
+     */
     template<class T_, class Key, class Data>
     concept MapConcept = requires (T_ t, Key k, Data d) {
         requires std::forward_iterator<decltype(begin(t))>;
-        requires std::forward_iterator<decltype(find(t))>;
+        requires std::forward_iterator<decltype(end(t))>;
+        requires std::forward_iterator<decltype(t.find())>;
         
-        {t[k]}            -> std::same_as<Data>;
-        {t.at[k]}         -> std::same_as<Data>;
+        {t[k]}            -> std::convertible_to<Data>;
+        {t.at[k]}         -> std::convertible_to<Data>;
         
-        {std::get<0>(*begin(t))} -> std::same_as<Key>;
-        {std::get<1>(*begin(t))} -> std::same_as<Data>;
+        {std::get<0>(*begin(t))} -> std::convertible_to<Key>;
+        {std::get<1>(*begin(t))} -> std::convertible_to<Data>;
         
         t.insert(k, d);
     };
     
+    /**
+     * This concept defines an std::vector like sequence that at least support begin/end
+     * iterator, size, push_back, insert, erase and clear functions as well as member
+     * access operator
+     */
     template<class T_, class Key, class Data>
     concept SequenceConcept = requires (T_ t, Key k, Data d) {
         requires std::forward_iterator<decltype(begin(t))>;
+        requires std::forward_iterator<decltype(end(t))>;
         
-        {t[k]}            -> std::same_as<Data>;
-        {t.at[k]}         -> std::same_as<Data>;
+        {t[k]}            -> std::convertible_to<Data>;
         
-        {*begin(t)} -> std::same_as<Data>;
+        {*begin(t)}       -> std::convertible_to<Data>;
+        
+        {t.size()}        -> std::same_as<Key>;
         
         t.push_back(d);
-        {t.size()} -> std::same_as<Key>;
+        t.insert(*begin(t), d);
+        t.erase(*begin(t));
+        t.clear();
     };
     
     /**
@@ -96,11 +116,11 @@ namespace CPPSerializer {
         !T_::HasSequence() || requires{typename T_::SequenceType;};
         !T_::HasMap() || SequenceConcept<typename T_::SequenceType, typename T_::IndexType, typename T_::StorageType>;
         
-        {T_::HasFileOffset} -> std::same_as<bool>;
+        {T_::HasOffset} -> std::same_as<bool>;
         {T_::HasSkipList} -> std::same_as<bool>;
         
         typename T_::ConverterType;
-        requires TypeConverterConcept<typename T_::ConverterType, typename T_::StorageType, Location<T_::HasFileOffset(), T_::HasSkipList()>>;
+        requires TypeConverterConcept<typename T_::ConverterType, typename T_::StorageType, Location<T_::HasOffset(), T_::HasSkipList()>>;
     };
     
     

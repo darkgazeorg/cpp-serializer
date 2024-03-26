@@ -34,3 +34,4 @@
 build/
 vcpkg_installed/
 .cache/
+docs/html

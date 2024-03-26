@@ -1,46 +1,36 @@
 # ---- Dependencies ----
 
-set(extract_timestamps "")
-if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.24")
-  set(extract_timestamps DOWNLOAD_EXTRACT_TIMESTAMP YES)
-endif()
-
-include(FetchContent)
-FetchContent_Declare(
-    mcss URL
-    https://github.com/friendlyanon/m.css/releases/download/release-1/mcss.zip
-    URL_MD5 00cd2757ebafb9bcba7f5d399b3bec7f
-    SOURCE_DIR "${PROJECT_BINARY_DIR}/mcss"
-    UPDATE_DISCONNECTED YES
-    ${extract_timestamps}
-)
-FetchContent_MakeAvailable(mcss)
-
-find_package(Python3 3.6 REQUIRED)
-
-# ---- Declare documentation target ----
+FIND_PACKAGE(Doxygen)
+IF(NOT DOXYGEN_FOUND)
+    MESSAGE(FATAL_ERROR "Doxygen is required to build the documentation.")
+ENDIF()
 
 set(
-    DOXYGEN_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/docs"
+    DOXYGEN_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/docs"
     CACHE PATH "Path for the generated Doxygen documentation"
 )
 
 set(working_dir "${PROJECT_BINARY_DIR}/docs")
 
-foreach(file IN ITEMS Doxyfile conf.py)
-  configure_file("docs/${file}.in" "${working_dir}/${file}" @ONLY)
-endforeach()
+configure_file("${CMAKE_SOURCE_DIR}/docs/Doxyfile.in" "${working_dir}/Doxyfile" @ONLY)
 
-set(mcss_script "${mcss_SOURCE_DIR}/documentation/doxygen.py")
-set(config "${working_dir}/conf.py")
+find_program(opener NAMES xdg-open start open)
+
+SET(DOXYGEN_HTML ${DOXYGEN_OUTPUT_DIRECTORY}/html/index.html)
+	
+
+add_custom_command(OUTPUT ${DOXYGEN_HTML}
+    COMMAND "${CMAKE_COMMAND}" -E remove_directory "${DOXYGEN_OUTPUT_DIRECTORY}/html"
+    COMMAND ${DOXYGEN_EXECUTABLE} ${working_dir}/Doxyfile
+    SOURCES ${working_dir}/Doxyfile
+    MAIN_DEPENDENCY ${CMAKE_SOURCE_DIR}/docs/Doxyfile.in ${working_dir}/Doxyfile
+    DEPENDS ${All}
+)
+
+add_custom_target(docs ALL DEPENDS ${DOXYGEN_HTML})
 
 add_custom_target(
-    docs
-    COMMAND "${CMAKE_COMMAND}" -E remove_directory
-    "${DOXYGEN_OUTPUT_DIRECTORY}/html"
-    "${DOXYGEN_OUTPUT_DIRECTORY}/xml"
-    COMMAND "${Python3_EXECUTABLE}" "${mcss_script}" "${config}"
-    COMMENT "Building documentation using Doxygen and m.css"
-    WORKING_DIRECTORY "${working_dir}"
-    VERBATIM
+    docs-open
+    COMMAND ${opener} "${DOXYGEN_OUTPUT_DIRECTORY}/html/index.html"
+    DEPENDS ${DOXYGEN_HTML}
 )
