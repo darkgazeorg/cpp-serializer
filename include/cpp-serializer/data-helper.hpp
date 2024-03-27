@@ -7,63 +7,42 @@
 
 
 namespace CPPSerializer::internal {
-    template<bool HasMap, class TraitType>
-    struct datakeyhelper {
-        using Type = TraitType::KeyType;
-    };
+    //These structs turn optional types into solid types
     
-    template<class TraitType>
-    struct datakeyhelper<false, TraitType> {
-        using Type = void;
+    template<DataTraitConcept DataTraits>
+    struct datatraithelper : public DataTraits {
+        static constexpr bool HasNumber() {
+            return !std::is_same_v<typename DataTraits::NumberType, void>;
+        }
+        static constexpr bool HasInteger() {
+            return !std::is_same_v<typename DataTraits::IntegerType, void>;
+        }
+        static constexpr bool HasRead() {
+            return !std::is_same_v<typename DataTraits::RealType, void>;
+        }
+        static constexpr bool HasNull() {
+            return !std::is_same_v<typename DataTraits::NullType, void>;
+        }
+        static constexpr bool HasBool() {
+            return !std::is_same_v<typename DataTraits::BoolType, void>;
+        }
+        static constexpr bool HasString() {
+            return !std::is_same_v<typename DataTraits::StringType, void>;
+        }
+        static constexpr bool HasSequence() {
+            return !std::is_same_v<typename DataTraits::SequenceType, void>;
+        }
+        static constexpr bool HasMap() {
+            return !std::is_same_v<typename DataTraits::MapType, void>;
+        }
     };
-
-    template<bool HasMap, class TraitType>
-    struct datamaphelper {
-        using Type = TraitType::KeyType;
-    };
-    
-    template<class TraitType>
-    struct datamaphelper<false, TraitType> {
-        using Type = void;
-    };
-    
-    template<bool HasSequence, class TraitType>
-    struct dataindexhelper {
-        using Type = TraitType::IndexType;
-    };
-
-    template<class TraitType>
-    struct dataindexhelper<false, TraitType> {
-        using Type = void;
-
-    };
-    
-    template<bool HasSequence, class TraitType>
-    struct datasequencehelper {
-        using Type = TraitType::SequenceType;
-    };
-
-    template<class TraitType>
-    struct datasequencehelper<false, TraitType> {
-        using Type = void;
-    };
-    
-    
-    template<DataTraitConcept TraitType>
-    struct dataoptionalhelper {
-        using IndexType = dataindexhelper<TraitType::HasSequence(), typename TraitType::IndexType>;
-        using KeyType = datakeyhelper<TraitType::HasMap(), typename TraitType::KeyType>;
-        using SequenceType = datasequencehelper<TraitType::HasSequence(), typename TraitType::SequenceType>;
-        using MapType = datamaphelper<TraitType::HasMap(), typename TraitType::MapType>;
-    };
-
-    
     
     template<
-        bool Vector, bool Map, class IndexType, class KeyType, 
-        class StorageType, class SequenceType, class MapType
+        class StorageType, 
+        class IndexType, class KeyType, 
+        class SequenceType, class MapType
     > 
-    requires Vector && Map && 
+    requires 
             (!std::same_as<IndexType, void>) && 
             (!std::same_as<KeyType, void>) && 
             (!std::same_as<SequenceType, void>) && 
@@ -74,37 +53,38 @@ namespace CPPSerializer::internal {
         /// at all, not that it contains a null value.
         std::variant<std::nullptr_t, StorageType, SequenceType, MapType> data;
     };
-
-    template<class IndexType, class StorageType, class SequenceType>
+    
+    template<class StorageType, class IndexType, class SequenceType>
     requires 
             (!std::same_as<IndexType, void>) && 
             (!std::same_as<SequenceType, void>)
-    class datadatahelper<true, false, IndexType, void, StorageType, SequenceType, void> {
+    class datadatahelper<StorageType, IndexType, void, SequenceType, void> {
     protected:
         std::variant<std::nullptr_t, StorageType, SequenceType> data;
     };
-
+    
     template<class KeyType, class StorageType, class MapType>
     requires 
             (!std::same_as<KeyType, void>) && 
             (!std::same_as<MapType, void>)
-    class datadatahelper<false, true, void, KeyType, StorageType, void, MapType> {
+    class datadatahelper<StorageType, void, KeyType, void, MapType> {
     protected:
         std::variant<std::nullptr_t, StorageType, MapType> data;
     };
     
     template<class StorageType>
-    class datadatahelper<false, false, void, void, StorageType, void, void> {
+    class datadatahelper<StorageType, void, void, void, void> {
     protected:
         std::variant<std::nullptr_t, StorageType> data;
     };
     
     template<
         DataTraitConcept DataTraits,
-        bool Vector, bool Map, class IndexType, class KeyType, 
-        class StorageType, class SequenceType, class MapType
+        class StorageType, 
+        class IndexType, class KeyType, 
+        class SequenceType, class MapType
     > 
-    class datahelper : public datadatahelper<Vector, Map, IndexType, KeyType, StorageType, SequenceType, MapType> {
+    class datahelper : public datadatahelper<StorageType, IndexType, KeyType, SequenceType, MapType> {
     public:
         
         bool KeyExists(const KeyType &key) const {
@@ -124,11 +104,11 @@ namespace CPPSerializer::internal {
     
     template<
         DataTraitConcept DataTraits,
-        bool Vector, class IndexType, 
+        class IndexType, 
         class StorageType, class SequenceType
     > 
-    class datahelper<DataTraits, Vector, false, IndexType, void, StorageType, SequenceType, void> : 
-        public datadatahelper<Vector, false, IndexType, void, StorageType, SequenceType, void> 
+    class datahelper<DataTraits, StorageType, IndexType, void, SequenceType, void> : 
+        public datadatahelper<StorageType, IndexType, void, SequenceType, void> 
     { };
 
 
