@@ -7,6 +7,9 @@
 
 namespace CPPSerializer {
     
+    //TODO: Redo location to add support for filename
+    //      Difference between byte and char offset
+
     template<bool Offset_, bool SkipList_>
     struct Location {
         static_assert(false, "Skip list cannot be used without offset");
@@ -45,7 +48,7 @@ namespace CPPSerializer {
         }
     };
 
-
+    
     struct Path {    
         enum Type {
             Sequence,

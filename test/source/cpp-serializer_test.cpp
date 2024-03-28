@@ -9,6 +9,7 @@ struct NoConversion {
     std::pair<CPPSerializer::Location<false, false>, std::string> operator()(auto, const std::string_view &s)  { 
         return {{}, std::string(s)}; 
     }
+    auto operator()(std::string &s) { return s; }
 };
 
 struct SimpleTraits {
@@ -28,7 +29,8 @@ struct SimpleTraits {
     static constexpr bool HasOffset() { return false; }
     static constexpr bool HasSkipList() { return false; }
 
-    using ConverterType = NoConversion;
+    using DataParserType = NoConversion;
+    using DataEmitterType = NoConversion;
 };
 
 static_assert(CPPSerializer::DataTraitConcept<SimpleTraits>, "Simple traits do not satisfy data traits.");

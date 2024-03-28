@@ -2,6 +2,7 @@
 
 #include "data-helper.hpp"
 
+
 namespace CPPSerializer {
     
     /**
@@ -31,9 +32,12 @@ namespace CPPSerializer {
         /// Storage data type definition
         using StorageType = DataTraits_::StorageType;
     
+        template<class T_>
+        void SetData(const T_ &val) {
+            this->data = StorageType{val};
+        }
+    
     private:
-        StorageType data;
-        
         [[no_unique_address]]
         Location<DataTraits::HasOffset(), DataTraits::HasSkipList()> location;
     };

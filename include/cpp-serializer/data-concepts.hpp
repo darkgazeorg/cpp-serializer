@@ -5,7 +5,7 @@
 #include <type_traits>
 
 #define CONCEPT_ASSERT(check, message) []{ static_assert(check, message); return check; }()
-    
+
 
 namespace CPPSerializer {
     
@@ -16,13 +16,22 @@ namespace CPPSerializer {
     struct Location;
     
     /**
-     * Type converter concepts will take a context and a string and should convert that string
+     * Type parser concepts will take a context and a string and should convert that string
      * to a type that is compatible with the selected storage type. It also should convert the 
      * context to the location type that is selected.
      */
     template <class T_, class StorageType, class LocationType>
-    concept TypeConverterConcept = requires(T_ t, Context<LocationType> c, std::string_view s) {
+    concept DataParserConcept = requires(T_ t, Context<LocationType> c, std::string_view s) {
         {t(c, s)} -> std::same_as<std::pair<LocationType, StorageType>>;
+    };
+    
+    /**
+     * Type emitter concepts will take a context and storage type and should convert it to a
+     * type compatible with string_view
+     */
+    template <class T_, class StorageType>
+    concept DataEmitterConcept = requires(T_ t, StorageType s) {
+        {t(s)} -> std::convertible_to<std::string_view>;
     };
     
     /**
@@ -73,6 +82,7 @@ namespace CPPSerializer {
      * data type for storage and converter. You may supply void to disable any type. However, at 
      * least one type should be set for system to work. Storage type could be derived from 
      * std::variant, std::any or if only a single type is set, it could simply be that type.
+     * TODO: Explain type parser, emitter
      */
     template<class T_>
     concept DataTraitConcept = requires {
@@ -98,7 +108,8 @@ namespace CPPSerializer {
         {T_::HasOffset()} -> std::same_as<bool>;
         {T_::HasSkipList()} -> std::same_as<bool>;
         
-        typename T_::ConverterType;
+        typename T_::DataParserType;
+        typename T_::DataEmitterType;
         
         //checks
         
@@ -127,11 +138,17 @@ namespace CPPSerializer {
         std::is_same_v<typename T_::KeyType, void> == std::is_same_v<typename T_::MapType, void>;
         std::is_same_v<typename T_::SequenceType, void> || SequenceConcept<typename T_::SequenceType, typename T_::IndexType, typename T_::StorageType>;
         std::is_same_v<typename T_::IndexType, void> == std::is_same_v<typename T_::SequenceType, void>;
-        requires TypeConverterConcept<typename T_::ConverterType, typename T_::StorageType, Location<T_::HasOffset(), T_::HasSkipList()>>;
+        
+        std::is_same_v<typename T_::DataParserType,  void> || DataParserConcept <typename T_::DataParserType , typename T_::StorageType, Location<T_::HasOffset(), T_::HasSkipList()>>;
+        std::is_same_v<typename T_::DataEmitterType, void> || DataEmitterConcept<typename T_::DataEmitterType, typename T_::StorageType>;
     
     };
     
-    
+    template<class T_>
+    concept DataConcept = requires { 
+        typename T_::StorageType;
+        requires DataTraitConcept<typename T_::DataTraits>;
+    };
 
 }
     
