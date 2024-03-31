@@ -1,5 +1,6 @@
 #pragma once
 
+#include "cpp-serializer/location.hpp"
 #include "data.hpp"
 
 #include <string>
@@ -10,9 +11,9 @@ namespace CPPSerializer {
     namespace internal {
         
         struct SimpleTextDataConverter {
-            using LocationType = Location<false, false>;
+            using LocationType = NoLocation;
             auto operator()(Context<LocationType> &c, const std::string_view &s) {
-                return std::pair{c.offset, std::string(s)};
+                return std::pair{c.location, std::string(s)};
             }
             auto operator()(std::string &s) { return s; }
             auto operator()(const std::string &s) { return s; }
@@ -32,11 +33,9 @@ namespace CPPSerializer {
             using KeyType = void;
             using MapType = void;
             
-            static constexpr bool HasOffset() { return false; }
-            static constexpr bool HasSkipList() { return false; }
-            
             using DataParserType = SimpleTextDataConverter;
             using DataEmitterType = SimpleTextDataConverter;
+            using LocationType = NoLocation;
         };
         
         template<bool skiplist>
@@ -82,7 +81,7 @@ namespace CPPSerializer {
                     std::string str;
                     str.reserve(reader.GetSize());
                     
-                    Location<true, true> location;
+                    
                     
                     while(!reader.IsEof()) {
                         auto c = reader.Get();

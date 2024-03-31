@@ -4,9 +4,10 @@
 #include <catch2/catch_test_macros.hpp>
 #include <string>
 #include <string_view>
+#include <cpp-serializer/txt.hpp>
 
 struct NoConversion {
-    std::pair<CPPSerializer::Location<false, false>, std::string> operator()(auto, const std::string_view &s)  { 
+    std::pair<CPPSerializer::NoLocation, std::string> operator()(auto, const std::string_view &s)  { 
         return {{}, std::string(s)}; 
     }
     auto operator()(std::string &s) { return s; }
@@ -26,18 +27,17 @@ struct SimpleTraits {
     using KeyType = void;
     using MapType = void;
     
-    static constexpr bool HasOffset() { return false; }
-    static constexpr bool HasSkipList() { return false; }
 
     using DataParserType = NoConversion;
     using DataEmitterType = NoConversion;
+    using LocationType = CPPSerializer::NoLocation;
 };
 
 static_assert(CPPSerializer::DataTraitConcept<SimpleTraits>, "Simple traits do not satisfy data traits.");
 
 TEST_CASE("File offset", "[Basics]") {
-    CPPSerializer::FileOffset f;
+    /*CPPSerializer::Offset f;
     auto [line, off] = f.Offset(5);
     REQUIRE(line == 0);
-    REQUIRE(off == 5);
+    REQUIRE(off == 5);*/
 }

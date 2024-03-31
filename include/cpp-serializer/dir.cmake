@@ -1,5 +1,9 @@
 set(Local
     data-helper.hpp
+    concepts.hpp
     ini.hpp
     data.hpp
+    location.hpp
+    txt.hpp
+    tmp.hpp
 )

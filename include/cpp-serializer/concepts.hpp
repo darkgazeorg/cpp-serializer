@@ -1,5 +1,6 @@
 #pragma once
 
+#include "cpp-serializer/location.hpp"
 #include <concepts>
 #include <string_view>
 #include <type_traits>
@@ -9,11 +10,8 @@
 
 namespace CPPSerializer {
     
-    template<class OffsetType>
+    template<class LocationType>
     struct Context;
-
-    template<bool Offset, bool SkipList>
-    struct Location;
     
     /**
      * Type parser concepts will take a context and a string and should convert that string
@@ -77,6 +75,28 @@ namespace CPPSerializer {
     };
     
     /**
+     * Location should supply functions that allows discovery of its abilities. Additionally,
+     * any ability that is set should have the necessary data member.
+     */
+    template<class T_>
+    concept LocationConcept = requires (T_ t, ByteOffset bo) {
+        {T_::HasByteOffset()} -> std::same_as<bool>;
+        {T_::HasCharOffset()} -> std::same_as<bool>;
+        {T_::HasLineOffset()} -> std::same_as<bool>;
+        {T_::HasResourceName()} -> std::same_as<bool>;
+        {T_::HasSkipList()} -> std::same_as<bool>;
+        
+        !T_::HasByteOffset() || requires { requires std::same_as<decltype(t.ByteOffset), size_t>; };
+        !T_::HasCharOffset() || requires { requires std::same_as<decltype(t.CharOffset), size_t>; };
+        !T_::HasLineOffset() || requires { requires std::same_as<decltype(t.LineOffset), size_t>; };
+        !T_::HasResourceName() || requires { t.ResourceName; };
+        !T_::HasSkipList() || requires {
+            t.SkipList;
+            t.Obtain(bo) -> LocationConcept;
+        };
+    };
+    
+    /**
      * @brief Concept for data traits.
      * This concept checks traits type for data storage. At the basic level, DataTraits should supply
      * data type for storage and converter. You may supply void to disable any type. However, at 
@@ -105,11 +125,10 @@ namespace CPPSerializer {
         typename T_::IndexType;
         typename T_::SequenceType;
         
-        {T_::HasOffset()} -> std::same_as<bool>;
-        {T_::HasSkipList()} -> std::same_as<bool>;
-        
         typename T_::DataParserType;
         typename T_::DataEmitterType;
+        typename T_::LocationType;
+        
         
         //checks
         
@@ -139,9 +158,10 @@ namespace CPPSerializer {
         std::is_same_v<typename T_::SequenceType, void> || SequenceConcept<typename T_::SequenceType, typename T_::IndexType, typename T_::StorageType>;
         std::is_same_v<typename T_::IndexType, void> == std::is_same_v<typename T_::SequenceType, void>;
         
-        std::is_same_v<typename T_::DataParserType,  void> || DataParserConcept <typename T_::DataParserType , typename T_::StorageType, Location<T_::HasOffset(), T_::HasSkipList()>>;
+        std::is_same_v<typename T_::DataParserType,  void> || DataParserConcept <typename T_::DataParserType , typename T_::StorageType, typename T_::LocationType>;
         std::is_same_v<typename T_::DataEmitterType, void> || DataEmitterConcept<typename T_::DataEmitterType, typename T_::StorageType>;
     
+        requires LocationConcept<typename T_::LocationType>;
     };
     
     template<class T_>

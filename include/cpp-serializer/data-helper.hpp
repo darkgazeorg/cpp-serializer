@@ -1,7 +1,6 @@
 #pragma once
 
-#include "data-concepts.hpp"
-#include "location.hpp"
+#include "concepts.hpp"
 
 #include <variant>
 
@@ -98,7 +97,7 @@ namespace CPPSerializer::internal {
         }
     
     protected:
-        std::map<KeyType, Location<DataTraits::HasOffset(), DataTraits::HasSkipList()>> key_locations;
+        std::map<KeyType, typename DataTraits::LocationType> key_locations;
     };
     
     

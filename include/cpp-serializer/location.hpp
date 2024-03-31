@@ -1,53 +1,99 @@
 #pragma once
 
 #include <map>
+#include <optional>
 #include <variant>
 #include <vector>
+#include <string>
 #include <string_view>
 
 namespace CPPSerializer {
     
+    struct NoLocation {
+        static constexpr bool HasByteOffset() { return false; }
+        static constexpr bool HasCharOffset() { return false; }
+        static constexpr bool HasLineOffset() { return false; }
+        static constexpr bool HasSkipList() { return false; }
+        static constexpr bool HasResourceName() { return false; }
+    };
+    
+    struct ByteOffset {
+        static constexpr bool HasByteOffset() { return true; }
+        static constexpr bool HasCharOffset() { return false; }
+        static constexpr bool HasLineOffset() { return false; }
+        static constexpr bool HasSkipList() { return false; }
+        static constexpr bool HasResourceName() { return false; }
+        
+        size_t ByteOffset = 0;
+    };
+    
+    struct Offset {
+        static constexpr bool HasByteOffset() { return true; }
+        static constexpr bool HasCharOffset() { return true; }
+        static constexpr bool HasLineOffset() { return false; }
+        static constexpr bool HasSkipList() { return false; }
+        static constexpr bool HasResourceName() { return false; }
+        
+        size_t CharOffset = 0;
+        size_t ByteOffset = 0;
+    };
+    
+    struct LineLocation {
+        static constexpr bool HasByteOffset() { return true; }
+        static constexpr bool HasCharOffset() { return true; }
+        static constexpr bool HasLineOffset() { return true; }
+        static constexpr bool HasSkipList() { return false; }
+        static constexpr bool HasResourceName() { return false; }
+    
+        size_t ByteOffset = 0;
+        size_t LineOffset = 0;
+        size_t CharOffset = 0;
+    };
+    
+    struct GlobalLocation {
+        static constexpr bool HasByteOffset() { return true; }
+        static constexpr bool HasCharOffset() { return true; }
+        static constexpr bool HasLineOffset() { return true; }
+        static constexpr bool HasSkipList() { return false; }
+        static constexpr bool HasResourceName() { return true; }
+        
+        size_t ByteOffset = 0;
+        size_t LineOffset = 0;
+        size_t CharOffset = 0;
+        std::optional<std::string> ResourceName = "";
+    };
+    
+    struct InnerLocation {
+        static constexpr bool HasByteOffset() { return true; }
+        static constexpr bool HasCharOffset() { return true; }
+        static constexpr bool HasLineOffset() { return true; }
+        static constexpr bool HasSkipList() { return false; }
+        static constexpr bool HasResourceName() { return true; }
+    
+        size_t ByteOffset = 0;
+        size_t LineOffset = 0;
+        size_t CharOffset = 0;
+        std::map<size_t, LineLocation> skiplist;
+        
+    };
+    
+    struct GlobalInnerLocation {
+        static constexpr bool HasByteOffset() { return true; }
+        static constexpr bool HasCharOffset() { return true; }
+        static constexpr bool HasLineOffset() { return true; }
+        static constexpr bool HasSkipList() { return true; }
+        static constexpr bool HasResourceName() { return true; }
+    
+        size_t ByteOffset = 0;
+        size_t LineOffset = 0;
+        size_t CharOffset = 0;
+        std::optional<std::string> ResourceName = "";
+        std::map<size_t, GlobalLocation> skiplist;
+    };
+    
     //TODO: Redo location to add support for filename
     //      Difference between byte and char offset
-
-    template<bool Offset_, bool SkipList_>
-    struct Location {
-        static_assert(false, "Skip list cannot be used without offset");
-    };
     
-    using FileOffset = Location<true, false>;
-    
-    template<>
-    struct Location<true, false> {
-        size_t Line{}, Char{};
-        
-        /// This function cannot canonicalize line offsets from character offset
-        FileOffset Offset(size_t char_offset) const {
-            return {Line, Char + char_offset};
-        }
-    };
-    
-    template<>
-    struct Location<false, false> {
-        /// This function simply returns back the given char offset
-        FileOffset Offset(size_t char_offset) const {
-            return {0, char_offset};
-        }
-    };
-    
-    template<>
-    struct Location<true, true> {
-        size_t Line{}, Char{};
-        std::map<size_t, FileOffset> skiplist;
-        
-        FileOffset Offset(size_t char_offset) const {
-            if(auto it = skiplist.upper_bound(char_offset); it != skiplist.begin())
-                return {Line + it->second.Line, Char + char_offset + it->second.Char};
-            else
-                return {Line, Char + char_offset};
-        }
-    };
-
     
     struct Path {    
         enum Type {
@@ -65,9 +111,9 @@ namespace CPPSerializer {
     };
     
     
-    template<class OffsetType>
+    template<class LocationType>
     struct Context {
-        OffsetType offset;
+        LocationType location;
         Path path;
     };
 

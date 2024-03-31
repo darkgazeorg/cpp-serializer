@@ -39,7 +39,7 @@ namespace CPPSerializer {
     
     private:
         [[no_unique_address]]
-        Location<DataTraits::HasOffset(), DataTraits::HasSkipList()> location;
+        DataTraits::LocationType location;
     };
 
 }
