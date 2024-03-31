@@ -12,6 +12,9 @@ namespace CPPSerializer {
     
     template<class LocationType>
     struct Context;
+
+    template<class T_>
+    class Source;
     
     /**
      * Type parser concepts will take a context and a string and should convert that string
@@ -79,7 +82,7 @@ namespace CPPSerializer {
      * any ability that is set should have the necessary data member.
      */
     template<class T_>
-    concept LocationConcept = requires (T_ t, ByteOffset bo) {
+    concept LocationConcept = requires (T_ t, ByteOffset bo, const std::string_view sv) {
         {T_::HasByteOffset()} -> std::same_as<bool>;
         {T_::HasCharOffset()} -> std::same_as<bool>;
         {T_::HasLineOffset()} -> std::same_as<bool>;
@@ -92,7 +95,8 @@ namespace CPPSerializer {
         !T_::HasResourceName() || requires { t.ResourceName; };
         !T_::HasSkipList() || requires {
             t.SkipList;
-            t.Obtain(bo) -> LocationConcept;
+            
+            t.Obtain(bo, sv) -> LocationConcept;
         };
     };
     
@@ -164,10 +168,26 @@ namespace CPPSerializer {
         requires LocationConcept<typename T_::LocationType>;
     };
     
+    /**
+     * Data storage service.
+     */
     template<class T_>
     concept DataConcept = requires { 
         typename T_::StorageType;
         requires DataTraitConcept<typename T_::DataTraits>;
+    };
+    
+    /**
+     * This concept validates a data source that can be used to parse data.
+     * Source should have Seek function, but it may reject seek operation
+     * by returning false.
+     */
+    template<class T_>
+    concept SourceConcept = requires (T_ s, const T_ cs) {
+        {s.Get()} -> std::convertible_to<char>;
+        {cs.Peek()} -> std::convertible_to<char>;
+
+        //..
     };
 
 }

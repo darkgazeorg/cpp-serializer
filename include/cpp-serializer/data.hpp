@@ -19,10 +19,10 @@ namespace CPPSerializer {
     template<DataTraitConcept DataTraits_>
     class Data : internal::datahelper<
         DataTraits_,
+        typename DataTraits_::StorageType,
         typename DataTraits_::IndexType,
         typename DataTraits_::KeyType,
-        typename DataTraits_::StorageType,
-        typename DataTraits_::SequenceTypeType,
+        typename DataTraits_::SequenceType,
         typename DataTraits_::MapType
     > {
     public:
@@ -30,11 +30,23 @@ namespace CPPSerializer {
         using DataTraits = internal::datatraithelper<DataTraits_>;
         
         /// Storage data type definition
-        using StorageType = DataTraits_::StorageType;
+        using StorageType = DataTraits::StorageType;
     
         template<class T_>
         void SetData(const T_ &val) {
             this->data = StorageType{val};
+        }
+        
+        StorageType GetData() const {
+            return std::get<StorageType>(this->data);
+        }
+
+        DataTraits::LocationType GetLocation() const {
+            return location;
+        }
+
+        void SetLocation(const DataTraits::LocationType &value) {
+            location = value;
         }
     
     private:

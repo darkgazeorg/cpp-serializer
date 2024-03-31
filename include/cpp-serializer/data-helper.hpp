@@ -41,11 +41,6 @@ namespace CPPSerializer::internal {
         class IndexType, class KeyType, 
         class SequenceType, class MapType
     > 
-    requires 
-            (!std::same_as<IndexType, void>) && 
-            (!std::same_as<KeyType, void>) && 
-            (!std::same_as<SequenceType, void>) && 
-            (!std::same_as<MapType, void>)
     class datadatahelper {
     protected:
         /// The data stored in this data object. nullptr here denotes data is not set
@@ -54,18 +49,12 @@ namespace CPPSerializer::internal {
     };
     
     template<class StorageType, class IndexType, class SequenceType>
-    requires 
-            (!std::same_as<IndexType, void>) && 
-            (!std::same_as<SequenceType, void>)
     class datadatahelper<StorageType, IndexType, void, SequenceType, void> {
     protected:
         std::variant<std::nullptr_t, StorageType, SequenceType> data;
     };
     
     template<class KeyType, class StorageType, class MapType>
-    requires 
-            (!std::same_as<KeyType, void>) && 
-            (!std::same_as<MapType, void>)
     class datadatahelper<StorageType, void, KeyType, void, MapType> {
     protected:
         std::variant<std::nullptr_t, StorageType, MapType> data;

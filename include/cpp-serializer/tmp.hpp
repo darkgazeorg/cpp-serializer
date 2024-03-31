@@ -18,5 +18,5 @@ namespace CPPSerializer {
     std::false_type hasimp(...);
     
     template <class T>
-    bool HasImp = decltype(hasimp(std::declval<T*>())){};
+    constexpr inline bool HasImp = decltype(hasimp(std::declval<T*>())){};
 }

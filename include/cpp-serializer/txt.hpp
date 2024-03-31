@@ -1,7 +1,9 @@
 #pragma once
 
+#include "cpp-serializer/concepts.hpp"
 #include "cpp-serializer/location.hpp"
 #include "data.hpp"
+#include "source.hpp"
 
 #include <string>
 #include <string_view>
@@ -19,6 +21,7 @@ namespace CPPSerializer {
             auto operator()(const std::string &s) { return s; }
         };
         
+        template<LocationConcept LocationType_ = NoLocation>
         struct TextData_SimpleTraits {            
             using StorageType = std::string;
             
@@ -35,7 +38,7 @@ namespace CPPSerializer {
             
             using DataParserType = SimpleTextDataConverter;
             using DataEmitterType = SimpleTextDataConverter;
-            using LocationType = NoLocation;
+            using LocationType = LocationType_;
         };
         
         template<bool skiplist>
@@ -60,32 +63,48 @@ namespace CPPSerializer {
         };
     }
     
-    using TextData_Simple = Data<internal::TextData_SimpleTraits>;
+    using TextData_Simple = Data<internal::TextData_SimpleTraits<>>;
+    using TextData_SkipList = Data<internal::TextData_SimpleTraits<GlobalInnerLocation>>;
         
-    template<DataConcept DataType_>
-    class TextTransport : public internal::texttransportlocationhelper<DataType_::DataTraits::HasSkipList()> {
+    template<DataConcept DataType_ = TextData_Simple>
+    class TextTransport : public internal::texttransportlocationhelper<DataType_::DataTraits::LocationType::HasSkipList()> {
     public:
-        using DataType    = DataType_;
-        using DataTraits  = DataType_::DataTraits;
-        using StorageType = DataType_::StorageType;
-        
-    
+        using DataType     = DataType_;
+        using DataTraits   = DataType_::DataTraits;
+        using StorageType  = DataType_::StorageType;
+        using LocationType = DataTraits::LocationType;
         
         template<class T_>
         void Parse(T_ &source, DataType &data) {
             auto reader = make_source(source);
             bool done = false;
             
-            if constexpr(DataTraits::HasSkipList()) {
+            LocationType location;
+            
+            if constexpr(LocationType::HasSkipList()) {
                 if(this->IsParsingSkipList()) {
                     std::string str;
                     str.reserve(reader.GetSize());
-                    
-                    
+                    size_t line = 1;
                     
                     while(!reader.IsEof()) {
                         auto c = reader.Get();
-                        //if()
+                        
+                        if(c == '\n') {
+                            if(reader.TryPeek() == '\r') {
+                                reader.Advance();
+                            }
+                            
+                            line++;
+                            auto curlocation = LocationType{line, 1};
+                            
+                            if constexpr(LocationType::HasResourceName) {
+                                curlocation.ResourceName = reader.GetResourceName();
+                            }
+
+                            location.SkipList[reader.Tell()] = curlocation;
+                        }
+                        
                         str.push_back(c);
                     }
                     
@@ -93,7 +112,8 @@ namespace CPPSerializer {
                 }
             }
             
-            if(!done) data.SetData(reader.Read(reader.GetSize()));
+            if(!done) data.SetData(reader.Read(reader.Size()));
+            data.SetLocation(location);
         
             //DataTraits::
         }
@@ -101,5 +121,7 @@ namespace CPPSerializer {
         template<class T_>
         void Emit(T_ &target, const DataType &data);
     };
+    
+    inline TextTransport<> TextTransportSimple;
 
 }

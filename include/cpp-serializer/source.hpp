@@ -4,6 +4,7 @@
 
 #include <cassert>
 #include <optional>
+#include <string>
 #include <string_view>
 #include <type_traits>
 
@@ -15,9 +16,9 @@ namespace CPPSerializer {
     template<>
     class Source<std::string_view> {
     public:
-        Source(const std::string_view &source) : source(source) { }
+        Source(const std::string_view &source_) : source(source_) { }
         
-        Source(const std::string_view&&) = delete;
+        ~Source() {}
     
         char Get() {
             assert(location < source.size());
@@ -48,11 +49,6 @@ namespace CPPSerializer {
             else {
                 return {};
             }
-        }
-        
-        void Advance(size_t forward = 1) {
-            location += forward;
-            location = location > source.size() ? source.size() : location;
         }
         
         bool IsEof() const {
@@ -88,13 +84,22 @@ namespace CPPSerializer {
         size_t Size() const {
             return source.size();
         }
+        
+        void Advance(size_t forward = 1) {
+            location += forward;
+            location = location > source.size() ? source.size() : location;
+        }
+        
+        std::optional<std::string> GetResourceName() const {
+            return std::nullopt;
+        }
     
     private:
         const  std::string_view source;
         size_t location = 0;
     };
     
-    //TODO: specialize for path, ifstream
+    //TODO: specialize for std::path, ifstream
     
     template<class T_>
     auto make_source(T_ &obj) {
