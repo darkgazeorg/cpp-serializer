@@ -1,6 +1,8 @@
 #pragma once
 
+#include <string_view>
 #include <type_traits>
+
 namespace CPPSerializer {
     
     template<class T_, template<class...> class O_>
@@ -19,4 +21,7 @@ namespace CPPSerializer {
     
     template <class T>
     constexpr inline bool HasImp = decltype(hasimp(std::declval<T*>())){};
+
+    
+    template<class T_> concept StringLike = std::is_convertible_v<T_, const std::string_view>;
 }

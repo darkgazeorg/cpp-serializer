@@ -186,8 +186,27 @@ namespace CPPSerializer {
     concept SourceConcept = requires (T_ s, const T_ cs) {
         {s.Get()} -> std::convertible_to<char>;
         {cs.Peek()} -> std::convertible_to<char>;
+        
+        {cs.PeekNext(1)} -> std::convertible_to<char>;
+        {cs.PeekNext()} -> std::convertible_to<char>;
+        {s.Read(1)} -> std::convertible_to<std::string_view>;
+            
+        {cs.IsEof()} -> std::same_as<bool>;
+        {s.TryGet()} -> std::convertible_to<std::optional<char>>;
+        
+        {cs.TryPeek()} -> std::convertible_to<std::optional<char>>;
+        {cs.TryPeekNext(1)} -> std::convertible_to<std::optional<char>>;
+        {cs.TryPeekNext()} -> std::convertible_to<std::optional<char>>;
 
-        //..
+
+        {cs.Tell()} -> std::convertible_to<size_t>;
+        {cs.Remaining()} -> std::convertible_to<std::optional<size_t>>;
+        {cs.Size()} -> std::convertible_to<std::optional<size_t>>;
+        
+        s.Advance();
+        s.Advance(1);
+
+        {cs.GetResourceName()} -> std::convertible_to<std::optional<std::string>>;
     };
 
 }

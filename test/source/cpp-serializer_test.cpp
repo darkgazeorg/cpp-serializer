@@ -1,3 +1,4 @@
+#include "cpp-serializer/source.hpp"
 #include "cpp-serializer/utf.hpp"
 #include <cpp-serializer/location.hpp>
 #include <cpp-serializer/data.hpp>
@@ -24,7 +25,13 @@ TEST_CASE("File offset", "[Basics]") {
     REQUIRE(off == 5);*/
 }
 
-TEST_CASE("Test text reader string", "[Parse][Text]") {
+TEST_CASE("Test text reader string", "[Parse][Text][Source<string_view>]") {
+    cpps::TextTransport<>::DataType data;
+    cpps::TextTransportSimple.Parse("Hello", data);
+    REQUIRE(data.GetData() == "Hello");
+}
+
+TEST_CASE("Test text reader string", "[Parse][Text][Source<path>]") {
     cpps::TextTransport<>::DataType data;
     cpps::TextTransportSimple.Parse("Hello", data);
     REQUIRE(data.GetData() == "Hello");

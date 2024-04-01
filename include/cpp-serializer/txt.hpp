@@ -5,8 +5,10 @@
 #include "data.hpp"
 #include "source.hpp"
 
+#include <limits>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace CPPSerializer {
     
@@ -74,9 +76,9 @@ namespace CPPSerializer {
         using StorageType  = DataType_::StorageType;
         using LocationType = DataTraits::LocationType;
         
-        template<class T_>
+        template<class T_, bool AutoTranslateSource = true>
         void Parse(T_ &source, DataType &data) {
-            auto reader = make_source(source);
+            auto reader = make_source<AutoTranslateSource>(source);
             bool done = false;
             
             LocationType location;
@@ -84,7 +86,11 @@ namespace CPPSerializer {
             if constexpr(LocationType::HasSkipList()) {
                 if(this->IsParsingSkipList()) {
                     std::string str;
-                    str.reserve(reader.GetSize());
+                    
+                    //if size is known, allocate that much space
+                    if(auto sz = reader.GetSize(); sz)
+                        str.reserve(*sz);
+                    
                     size_t line = 1;
                     
                     while(!reader.IsEof()) {
@@ -112,7 +118,9 @@ namespace CPPSerializer {
                 }
             }
             
-            if(!done) data.SetData(reader.Read(reader.Size()));
+            //if we are not doing any fancy processing, we will read all data here.
+            if(!done) data.SetData(std::string(reader.Read(std::numeric_limits<size_t>::max())));
+
             data.SetLocation(location);
         
             //DataTraits::
