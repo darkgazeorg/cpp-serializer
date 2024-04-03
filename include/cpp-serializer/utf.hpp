@@ -2,7 +2,7 @@
 
 #include <stddef.h>
 
-namespace CPPSerializer {
+namespace CPP_SERIALIZER_NAMESPACE {
     
     /// Returns the number of bytes in a UTF8 code point.
     constexpr inline size_t UTF8Bytes(char first_byte) noexcept {

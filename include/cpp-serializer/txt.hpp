@@ -1,5 +1,7 @@
 #pragma once
 
+#include "config.hpp"
+
 #include "cpp-serializer/concepts.hpp"
 #include "cpp-serializer/location.hpp"
 #include "data.hpp"
@@ -10,7 +12,7 @@
 #include <string_view>
 #include <utility>
 
-namespace CPPSerializer {
+namespace CPP_SERIALIZER_NAMESPACE {
     
     namespace internal {
         

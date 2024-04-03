@@ -1,5 +1,7 @@
 #pragma once
 
+#include "config.hpp"
+
 #include "cpp-serializer/location.hpp"
 #include <concepts>
 #include <string_view>
@@ -8,7 +10,7 @@
 #define CONCEPT_ASSERT(check, message) []{ static_assert(check, message); return check; }()
 
 
-namespace CPPSerializer {
+namespace CPP_SERIALIZER_NAMESPACE {
     
     template<class LocationType>
     struct Context;

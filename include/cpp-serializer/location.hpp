@@ -8,7 +8,7 @@
 #include <string>
 #include <string_view>
 
-namespace CPPSerializer {
+namespace CPP_SERIALIZER_NAMESPACE {
     
     namespace internal {
         template<class Parent, bool skiplist> 

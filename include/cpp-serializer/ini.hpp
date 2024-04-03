@@ -1,9 +1,11 @@
 #pragma once
 
+#include "config.hpp"
+
 #include "data.hpp"
 
 
-namespace CPPSerializer {
+namespace CPP_SERIALIZER_NAMESPACE {
 
 
 

@@ -3,7 +3,7 @@
 #include <string_view>
 #include <type_traits>
 
-namespace CPPSerializer {
+namespace CPP_SERIALIZER_NAMESPACE {
     
     template<class T_, template<class...> class O_>
     struct IsInstantiation : public std::false_type {};

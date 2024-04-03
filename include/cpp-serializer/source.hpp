@@ -9,7 +9,7 @@
 #include <string_view>
 #include <type_traits>
 
-namespace CPPSerializer {
+namespace CPP_SERIALIZER_NAMESPACE {
     
     /**
      * @brief Source allows parsers to read data.

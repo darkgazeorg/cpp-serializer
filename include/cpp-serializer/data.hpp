@@ -1,9 +1,11 @@
 #pragma once
 
+#include "config.hpp"
+
 #include "data-helper.hpp"
 
 
-namespace CPPSerializer {
+namespace CPP_SERIALIZER_NAMESPACE {
     
     /**
      * @brief Data object to store generic data nodes.

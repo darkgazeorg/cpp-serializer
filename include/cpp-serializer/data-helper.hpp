@@ -1,11 +1,13 @@
 #pragma once
 
+#include "config.hpp"
+
 #include "concepts.hpp"
 
 #include <variant>
 
 
-namespace CPPSerializer::internal {
+namespace CPP_SERIALIZER_NAMESPACE::internal {
     //These structs turn optional types into solid types
     
     template<DataTraitConcept DataTraits>
