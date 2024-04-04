@@ -1,3 +1,9 @@
+/**
+ * @file concepts.hpp
+ * @version 0.1
+ * @date 2024-04-03
+ * Contains all concepts except for the ones that are created for transport settings. 
+ */
 #pragma once
 
 #include "config.hpp"
@@ -14,9 +20,12 @@ namespace CPP_SERIALIZER_NAMESPACE {
     
     template<class LocationType>
     struct Context;
-
+    
     template<class T_>
     class Source;
+    
+    template<class T_>
+    class Target;
     
     /**
      * Type parser concepts will take a context and a string and should convert that string
@@ -84,7 +93,7 @@ namespace CPP_SERIALIZER_NAMESPACE {
      * any ability that is set should have the necessary data member.
      */
     template<class T_>
-    concept LocationConcept = requires (T_ t, ByteOffset bo, const std::string_view sv) {
+    concept LocationConcept = requires (T_ t, size_t bo, const std::string_view sv) {
         {T_::HasByteOffset()} -> std::same_as<bool>;
         {T_::HasCharOffset()} -> std::same_as<bool>;
         {T_::HasLineOffset()} -> std::same_as<bool>;
@@ -181,8 +190,6 @@ namespace CPP_SERIALIZER_NAMESPACE {
     
     /**
      * This concept validates a data source that can be used to parse data.
-     * Source should have Seek function, but it may reject seek operation
-     * by returning false.
      */
     template<class T_>
     concept SourceConcept = requires (T_ s, const T_ cs) {
@@ -211,6 +218,13 @@ namespace CPP_SERIALIZER_NAMESPACE {
         {cs.GetResourceName()} -> std::convertible_to<std::optional<std::string>>;
     };
 
+    /**
+     * This concept validates a data target that can be used to emit the data to.
+     */
+    template<class T_>
+    concept TargetConcept = requires (T_ t, std::string_view sv, const T_ ct) {
+        t.Put(sv);
+    };
 }
     
 #undef CONCEPT_ASSERT

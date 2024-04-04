@@ -4,10 +4,12 @@
 
 #include "cpp-serializer/concepts.hpp"
 #include "cpp-serializer/location.hpp"
+#include "cpp-serializer/tmp.hpp"
+#include "cpp-serializer/txt.helper.hpp"
+#include "cpp-serializer/types.h"
 #include "data.hpp"
 #include "source.hpp"
 
-#include <limits>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -18,7 +20,7 @@ namespace CPP_SERIALIZER_NAMESPACE {
         
         struct SimpleTextDataConverter {
             using LocationType = NoLocation;
-            auto operator()(Context<LocationType> &c, const std::string_view &s) {
+            auto operator()(const Context<LocationType> &c, const std::string_view &s) {
                 return std::pair{c.location, std::string(s)};
             }
             auto operator()(std::string &s) { return s; }
@@ -69,7 +71,14 @@ namespace CPP_SERIALIZER_NAMESPACE {
     
     using TextData_Simple = Data<internal::TextData_SimpleTraits<>>;
     using TextData_SkipList = Data<internal::TextData_SimpleTraits<GlobalInnerLocation>>;
-        
+    
+    template<class T_>
+    concept TextTransportConcept = requires {
+        {T_::GlueLines()} -> std::same_as<bool>;
+        {T_::WordWrap()} -> std::same_as<bool>;
+    };
+    
+    //TODO: Implement line glueing, escape characters as well as wordwrap
     template<DataConcept DataType_ = TextData_Simple>
     class TextTransport : public internal::texttransportlocationhelper<DataType_::DataTraits::LocationType::HasSkipList()> {
     public:
@@ -81,55 +90,24 @@ namespace CPP_SERIALIZER_NAMESPACE {
         template<class T_, bool AutoTranslateSource = true>
         void Parse(T_ &source, DataType &data) {
             auto reader = make_source<AutoTranslateSource>(source);
-            bool done = false;
             
-            LocationType location;
+            auto settings = MaskedMixedType<LocationType::HasSkipList(), false, true>();
             
-            if constexpr(LocationType::HasSkipList()) {
-                if(this->IsParsingSkipList()) {
-                    std::string str;
-                    
-                    //if size is known, allocate that much space
-                    if(auto sz = reader.GetSize(); sz)
-                        str.reserve(*sz);
-                    
-                    size_t line = 1;
-                    
-                    while(!reader.IsEof()) {
-                        auto c = reader.Get();
-                        
-                        if(c == '\n') {
-                            if(reader.TryPeek() == '\r') {
-                                reader.Advance();
-                            }
-                            
-                            line++;
-                            auto curlocation = LocationType{line, 1};
-                            
-                            if constexpr(LocationType::HasResourceName) {
-                                curlocation.ResourceName = reader.GetResourceName();
-                            }
+            if constexpr(LocationType::HasSkipList())
+                MaskedGet<0, LocationType::HasSkipList(), false, false>(settings) = this->IsParsingSkipList();
 
-                            location.SkipList[reader.Tell()] = curlocation;
-                        }
-                        
-                        str.push_back(c);
-                    }
-                    
-                    done = true;
-                }
-            }
+            MaskedGet<2, LocationType::HasSkipList(), false, false>(settings) = true;
             
-            //if we are not doing any fancy processing, we will read all data here.
-            if(!done) data.SetData(std::string(reader.Read(std::numeric_limits<size_t>::max())));
-
-            data.SetLocation(location);
-        
-            //DataTraits::
+            internal::parseText<LocationType::HasSkipList() ? YesNoRuntime::Runtime : YesNoRuntime::No, YesNoRuntime::Yes, YesNoRuntime::Runtime>(reader, data, settings);
         }
         
         template<class T_>
-        void Emit(T_ &target, const DataType &data);
+        void Emit(T_ &target, const DataType &data) {
+            auto writer = make_target(target);
+            typename DataTraits::DataEmitterType emitter{};
+            
+            writer.Put(emitter(data.GetData()));
+        }
     };
     
     inline TextTransport<> TextTransportSimple;

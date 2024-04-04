@@ -59,6 +59,9 @@ namespace CPP_SERIALIZER_NAMESPACE {
      * satisfies location concept.
      */
     struct NoLocation {
+        NoLocation(size_t, size_t ,size_t) { }
+        NoLocation() { }
+
         static constexpr bool HasByteOffset() { return false; }
         static constexpr bool HasCharOffset() { return false; }
         static constexpr bool HasLineOffset() { return false; }
@@ -69,7 +72,15 @@ namespace CPP_SERIALIZER_NAMESPACE {
     /**
      * Only stores byte offset from the start of the source.
      */
-    struct ByteOffset {
+    struct ByteLocation {
+        ByteLocation(size_t byte_offset, size_t, size_t) :
+            ByteLocation(byte_offset) 
+        { }
+
+        ByteLocation(size_t byte_offset) :
+            ByteOffset(byte_offset) 
+        { }
+        
         static constexpr bool HasByteOffset() { return true; }
         static constexpr bool HasCharOffset() { return false; }
         static constexpr bool HasLineOffset() { return false; }
@@ -84,14 +95,23 @@ namespace CPP_SERIALIZER_NAMESPACE {
      * Character offset is in unicode code points.
      */
     struct Offset {
+        Offset(size_t byte_offset, size_t, size_t char_offset) :
+            Offset(byte_offset, char_offset)
+        { }
+
+        Offset(size_t byte_offset, size_t char_offset) :
+            ByteOffset(byte_offset),
+            CharOffset(char_offset)
+        { }
+        
         static constexpr bool HasByteOffset() { return true; }
         static constexpr bool HasCharOffset() { return true; }
         static constexpr bool HasLineOffset() { return false; }
         static constexpr bool HasSkipList() { return false; }
         static constexpr bool HasResourceName() { return false; }
         
-        size_t CharOffset = 0;
         size_t ByteOffset = 0;
+        size_t CharOffset = 0;
     };
     
     /**
@@ -100,6 +120,16 @@ namespace CPP_SERIALIZER_NAMESPACE {
      */
     struct LineLocation {
         using ObtainedType = LineLocation;
+        
+        LineLocation(size_t,  size_t line_offset, size_t char_offset) :
+            LineLocation(line_offset, char_offset)
+        { }
+        
+        LineLocation(size_t line_offset, size_t char_offset) :
+            LineOffset(line_offset),
+            CharOffset(char_offset)
+        { }
+        
         
         static constexpr bool HasByteOffset() { return false; }
         static constexpr bool HasCharOffset() { return true; }
@@ -123,6 +153,16 @@ namespace CPP_SERIALIZER_NAMESPACE {
      */
     struct GlobalLocation {
         using ObtainedType = GlobalLocation;
+        
+        GlobalLocation(size_t,  size_t line_offset, size_t char_offset) :
+            GlobalLocation(line_offset, char_offset, std::nullopt)
+        { }
+        
+        GlobalLocation(size_t line_offset, size_t char_offset, const std::optional<std::string> &resource_name) :
+            LineOffset(line_offset),
+            CharOffset(char_offset),
+            ResourceName(resource_name)
+        { }
         
         static constexpr bool HasByteOffset() { return false; }
         static constexpr bool HasCharOffset() { return true; }
@@ -152,6 +192,12 @@ namespace CPP_SERIALIZER_NAMESPACE {
      */
     struct InnerLocation {
         using ObtainedType = LineLocation;
+        
+        InnerLocation(size_t byte_offset,  size_t line_offset, size_t char_offset) :
+            ByteOffset(byte_offset),
+            LineOffset(line_offset),
+            CharOffset(char_offset)
+        { }
 
         static constexpr bool HasByteOffset() { return true; }
         static constexpr bool HasCharOffset() { return true; }
@@ -181,6 +227,17 @@ namespace CPP_SERIALIZER_NAMESPACE {
      */
     struct GlobalInnerLocation {
         using ObtainedType = GlobalLocation;
+
+        GlobalInnerLocation(size_t byte_offset,  size_t line_offset, size_t char_offset) :
+            GlobalInnerLocation(byte_offset, line_offset, char_offset, std::nullopt)
+        { }
+
+        GlobalInnerLocation(size_t byte_offset,  size_t line_offset, size_t char_offset, const std::optional<std::string> &resource_name) :
+            ByteOffset(byte_offset),
+            LineOffset(line_offset),
+            CharOffset(char_offset),
+            ResourceName(resource_name)
+        { }
         
         static constexpr bool HasByteOffset() { return true; }
         static constexpr bool HasCharOffset() { return true; }

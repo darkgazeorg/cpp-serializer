@@ -35,4 +35,7 @@ TEST_CASE("Test text reader string", "[Parse][Text][Source<path>]") {
     TextTransport<>::DataType data;
     TextTransportSimple.Parse("Hello", data);
     REQUIRE(data.GetData() == "Hello");
+
+    TextTransportSimple.Parse("Hello\nWorld", data);
+    REQUIRE(data.GetData() == "Hello World");
 }

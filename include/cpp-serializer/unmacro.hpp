@@ -1,0 +1,7 @@
+#ifdef CPPSER_MACROS_DEFINED
+
+#   undef CPPSER_DEFINE_MIXTIME
+
+
+#undef CPPSER_MACROS_DEFINED
+#endif
