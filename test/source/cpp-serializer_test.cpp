@@ -36,6 +36,7 @@ TEST_CASE("Test text reader string", "[Parse][Text][RuntimeSettings]") {
     RuntimeTextTransport::DataType data;
 
     transport.SetGlue(false);
+    transport.SetFolding(false);
 
     transport.Parse("Hello\nWorld", data);
     REQUIRE(data.GetData() == "Hello\nWorld");
@@ -48,6 +49,11 @@ TEST_CASE("Test text reader string", "[Parse][Text][RuntimeSettings]") {
 
     transport.Parse("Hello\n\nWorld", data);
     REQUIRE(data.GetData() == "Hello\nWorld");
+
+
+    transport.SetFolding(true);
+    transport.Parse("Hello  world", data);
+    REQUIRE(data.GetData() == "Hello world");
 }
 
 TEST_CASE("Test text reader skiplist", "[Parse][Text][SkipList]") {
@@ -96,4 +102,37 @@ TEST_CASE("Test text reader skiplist", "[Parse][Text][SkipList]") {
 
     loc = data.GetLocation(9);
     REQUIRE(loc.LineOffset == 4); REQUIRE(loc.CharOffset == 1);
+
+    source = "a \xc2\xa0lâd\t c\xc2\xa0 g\n x \nZ"; //c2a0 is non-breaking space
+    transport.Parse(source, data);
+    parsed = data.GetData();
+
+    REQUIRE(parsed == "a lâd\tc\xc2\xa0g x Z");
+
+    loc = data.GetLocation(0);
+    REQUIRE(loc.LineOffset == 1); REQUIRE(loc.CharOffset == 1);
+
+    loc = data.GetLocation(1);
+    REQUIRE(loc.LineOffset == 1); REQUIRE(loc.CharOffset == 2);
+
+    loc = data.GetLocation(2);
+    REQUIRE(loc.LineOffset == 1); REQUIRE(loc.CharOffset == 4);
+
+    loc = data.GetLocation(5);
+    REQUIRE(loc.LineOffset == 1); REQUIRE(loc.CharOffset == 6);
+
+    loc = data.GetLocation(7);
+    REQUIRE(loc.LineOffset == 1); REQUIRE(loc.CharOffset == 9);
+
+    loc = data.GetLocation(10);
+    REQUIRE(loc.LineOffset == 1); REQUIRE(loc.CharOffset == 12);
+
+    loc = data.GetLocation(12);
+    REQUIRE(loc.LineOffset == 2); REQUIRE(loc.CharOffset == 2);
+
+    loc = data.GetLocation(14);
+    REQUIRE(loc.LineOffset == 3); REQUIRE(loc.CharOffset == 1);
+
+    //space then enter
+
 }

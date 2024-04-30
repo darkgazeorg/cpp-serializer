@@ -310,7 +310,7 @@ namespace CPP_SERIALIZER_NAMESPACE {
 #include "macros.hpp"
 
     template<LocationConcept LocationType, SourceConcept Source>
-    void SetSkip(bool skiplist, LocationType &location, const Source &reader, size_t offset, size_t line_offset, size_t char_offset) {
+    void AddSkip(bool skiplist, LocationType &location, const Source &reader, size_t offset, size_t line_offset, size_t char_offset) {
         CPPSER_IF_MIXED(LocationType::HasSkipList(), skiplist) {
             auto curlocation = typename LocationType::ObtainedType{};
 
@@ -339,7 +339,7 @@ namespace CPP_SERIALIZER_NAMESPACE {
 
     template<LocationConcept LocationType, SourceConcept Source>
     void AddNewLine(bool skiplist, LocationType &location, const Source &reader, size_t offset, size_t &line_offset) {
-        SetSkip(skiplist, location, reader, offset, ++line_offset, 1);
+        AddSkip(skiplist, location, reader, offset, ++line_offset, 1);
     }
     
     struct Path {    

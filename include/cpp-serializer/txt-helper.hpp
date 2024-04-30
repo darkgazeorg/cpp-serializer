@@ -2,10 +2,12 @@
 
 #include "config.hpp"
 #include "concepts.hpp"
+#include "cpp-serializer/utf.hpp"
 #include "types.hpp"
 #include "location.hpp"
 #include "tmp.hpp"
 
+#include <cctype>
 #include <limits>
 #include <string>
 
@@ -35,6 +37,8 @@ namespace CPP_SERIALIZER_NAMESPACE::internal {
         
         auto location = LocationType{0, 1, 1};
         auto str      = std::string{};
+        auto char_off = size_t(1);
+        auto has_space= false;
         
         if(skiplist || folding || glue) {
             //if size is known, allocate that much space
@@ -46,11 +50,37 @@ namespace CPP_SERIALIZER_NAMESPACE::internal {
             
             while(!reader.IsEof()) {
                 auto c = reader.Get();
+
+                auto do_newline = c == '\n' || c == '\r';
+                auto do_space   = folding && UTF8IsSpace(c, reader);
+
+                //if only one enter was there, convert it to space
+                //this can only happen if glue is on
+                if(!do_newline) {
+                    if(seqline == 1) {
+                        //from the source perspective, next character is on the next line
+                        if(!has_space) str.push_back(' ');
+
+                        AddNewLine(skiplist, location, reader, str.size(), line);
+                        char_off = 1;
+
+                        seqline = 0;
+                        has_space = do_space;
+                    }
+                    else seqline = 0;
+                }
+
+                if(!do_newline && !do_space && has_space) {
+                    AddSkip(skiplist, location, reader, str.size(), line, char_off);
+                    has_space = false;
+                }
                 
                 //new line
-                if(c == '\n' || c == '\r') {     
+                if(do_newline) {     
                     //If it is \r\n, ignore \n
-                    if(c == '\r' && reader.TryPeek() == '\n') reader.Advance();
+                    if(c == '\r' && reader.TryPeek() == '\n') {
+                        reader.Advance();
+                    }
 
                     if(glue) { //join lines if there is no additional line breaks
                         if(seqline < 1) {
@@ -66,24 +96,41 @@ namespace CPP_SERIALIZER_NAMESPACE::internal {
 
                             str.push_back('\n');
                             AddNewLine(skiplist, location, reader, str.size(), line);
+                            char_off = 1;
                         }
                     }
                     else {
                         str.push_back('\n'); //simply add the new line
                         AddNewLine(skiplist, location, reader, str.size(), line);
+                        char_off = 1;
                     }
                 }
-                else {
-                    //if only one enter was there, convert it to space
-                    //this can only happen if glue is on
-                    if(seqline == 1) {
-                        str.push_back(' ');
-                        //from the source perspective, next character is on the next line
-                        AddNewLine(skiplist, location, reader, str.size(), line);
+                else if(do_space) {
+                    if(!has_space) {
+                        str.push_back(c);
+                        //copy additional utf8 bytes
+                        for(size_t i=1; i<UTF8Bytes(c) && !reader.IsEof(); i++) 
+                            str.push_back(reader.Get());
+                    }
+                    else {
+                        //eat additional utf8 bytes
+                        for(size_t i=1; i<UTF8Bytes(c); i++) 
+                            reader.TryGet();
                     }
 
+
+                    char_off++;
+                    
+                    has_space = true;
+                }
+                else {
                     str.push_back(c);
-                    seqline = 0;
+
+                    //copy additional utf8 bytes
+                    for(size_t i=1; i<UTF8Bytes(c) && !reader.IsEof(); i++) 
+                        str.push_back(reader.Get());
+
+                    char_off++;
                 }
             }
         }
