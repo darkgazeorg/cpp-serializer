@@ -1,11 +1,11 @@
-#include "cpp-serializer/source.hpp"
-#include "cpp-serializer/utf.hpp"
+#include <cpp-serializer/utf.hpp>
 #include <cpp-serializer/location.hpp>
 #include <cpp-serializer/data.hpp>
+#include <cpp-serializer/txt.hpp>
 
 #include <catch2/catch_test_macros.hpp>
+
 #include <string>
-#include <cpp-serializer/txt.hpp>
 
 using namespace std::literals;
 using namespace CPP_SERIALIZER_NAMESPACE;

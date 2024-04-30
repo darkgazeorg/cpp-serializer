@@ -5,6 +5,7 @@
 #include "concepts.hpp"
 
 #include <variant>
+#include <map>
 
 
 namespace CPP_SERIALIZER_NAMESPACE::internal {

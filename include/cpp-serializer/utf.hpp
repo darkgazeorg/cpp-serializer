@@ -1,6 +1,8 @@
 #pragma once
 
+#include "config.hpp"
 #include <stddef.h>
+
 
 namespace CPP_SERIALIZER_NAMESPACE {
     

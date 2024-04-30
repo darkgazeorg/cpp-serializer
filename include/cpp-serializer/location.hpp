@@ -1,5 +1,7 @@
 #pragma once
 
+#include "config.hpp"
+
 #include "cpp-serializer/utf.hpp"
 #include <map>
 #include <optional>
