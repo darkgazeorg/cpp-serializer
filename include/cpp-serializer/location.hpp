@@ -73,6 +73,8 @@ namespace CPP_SERIALIZER_NAMESPACE {
      * Only stores byte offset from the start of the source.
      */
     struct ByteLocation {
+        ByteLocation() = default;
+        
         ByteLocation(size_t byte_offset, size_t, size_t) :
             ByteLocation(byte_offset) 
         { }
@@ -95,6 +97,8 @@ namespace CPP_SERIALIZER_NAMESPACE {
      * Character offset is in unicode code points.
      */
     struct Offset {
+        Offset() = default;
+
         Offset(size_t byte_offset, size_t, size_t char_offset) :
             Offset(byte_offset, char_offset)
         { }
@@ -121,6 +125,8 @@ namespace CPP_SERIALIZER_NAMESPACE {
     struct LineLocation {
         using ObtainedType = LineLocation;
         
+        LineLocation() = default;
+
         LineLocation(size_t,  size_t line_offset, size_t char_offset) :
             LineLocation(line_offset, char_offset)
         { }
@@ -153,6 +159,8 @@ namespace CPP_SERIALIZER_NAMESPACE {
      */
     struct GlobalLocation {
         using ObtainedType = GlobalLocation;
+
+        GlobalLocation() = default;
         
         GlobalLocation(size_t,  size_t line_offset, size_t char_offset) :
             GlobalLocation(line_offset, char_offset, std::nullopt)
@@ -193,6 +201,8 @@ namespace CPP_SERIALIZER_NAMESPACE {
     struct InnerLocation {
         using ObtainedType = LineLocation;
         
+        InnerLocation() = default;
+
         InnerLocation(size_t byte_offset,  size_t line_offset, size_t char_offset) :
             ByteOffset(byte_offset),
             LineOffset(line_offset),
@@ -202,7 +212,7 @@ namespace CPP_SERIALIZER_NAMESPACE {
         static constexpr bool HasByteOffset() { return true; }
         static constexpr bool HasCharOffset() { return true; }
         static constexpr bool HasLineOffset() { return true; }
-        static constexpr bool HasSkipList() { return false; }
+        static constexpr bool HasSkipList() { return true; }
         static constexpr bool HasResourceName() { return true; }
         
         /// Converts to a type without skip list
@@ -227,6 +237,8 @@ namespace CPP_SERIALIZER_NAMESPACE {
      */
     struct GlobalInnerLocation {
         using ObtainedType = GlobalLocation;
+
+        GlobalInnerLocation() = default;
 
         GlobalInnerLocation(size_t byte_offset,  size_t line_offset, size_t char_offset) :
             GlobalInnerLocation(byte_offset, line_offset, char_offset, std::nullopt)

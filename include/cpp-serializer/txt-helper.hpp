@@ -1,9 +1,10 @@
 #pragma once
 
 #include "config.hpp"
-#include "cpp-serializer/concepts.hpp"
-#include "cpp-serializer/tmp.hpp"
-#include "cpp-serializer/types.h"
+#include "concepts.hpp"
+#include "types.hpp"
+#include "location.hpp"
+#include "tmp.hpp"
 
 #include <limits>
 #include <string>
@@ -11,21 +12,31 @@
 namespace CPP_SERIALIZER_NAMESPACE::internal {
     
 #include "macros.hpp"
-    
-    template<YesNoRuntime skiplist_, YesNoRuntime folding_, YesNoRuntime glue_, SourceConcept SourceType, DataConcept DataType, class TupleType>
-    void parseText(SourceType &reader, DataType &target, TupleType settings) {
+       
+    struct SimpleTextDataConverter {
+        using LocationType = NoLocation;
+        auto operator()(const Context<LocationType> &c, const std::string_view &s) {
+            return std::pair{c.location, std::string(s)};
+        }
+        auto operator()(std::string &s) { return s; }
+        auto operator()(const std::string &s) { return s; }
+    };
+
+
+    template<YesNoRuntime skiplist_, YesNoRuntime folding_, YesNoRuntime glue_, SourceConcept SourceType, DataConcept DataType>
+    void parseText(SourceType &reader, DataType &target, const std::array<bool, 3> &settings) {
         using DataTraits   = DataType::DataTraits;
         using LocationType = DataTraits::LocationType;
         using StorageType = DataTraits::StorageType;
         
-        const bool skiplist = GetMixedTime<skiplist_>::template Obtain<>(settings);
-        const bool folding = GetMixedTime<folding_>::template Obtain<skiplist_>(settings);
-        const bool glue = GetMixedTime<glue_>::template Obtain<skiplist_, folding_>(settings);
+        const bool skiplist = GetMixedTimeOption<skiplist_, 0>(settings);
+        const bool folding = GetMixedTimeOption<folding_, 1>(settings);
+        const bool glue = GetMixedTimeOption<glue_, 2>(settings);
         
         auto location = LocationType{0, 1, 1};
         auto str      = std::string{};
         
-        if(skiplist || folding) {
+        if(skiplist || folding || glue) {
             //if size is known, allocate that much space
             if(auto sz = reader.Size(); sz)
                 str.reserve(*sz);
@@ -57,15 +68,19 @@ namespace CPP_SERIALIZER_NAMESPACE::internal {
                     if(glue) {
                         if(seqline < 1) {
                             seqline++;
-                            str.push_back(' ');
                         }
                         else {
+                            seqline++;
                             str.push_back('\n');
                         }
                     }
                     else str.push_back('\n');
                 }
                 else {
+                    if(seqline == 1) {
+                        str.push_back(' ');
+                    }
+
                     str.push_back(c);
                     seqline = 0;
                 }

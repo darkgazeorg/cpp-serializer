@@ -8,8 +8,8 @@
 
 #include "config.hpp"
 
-#include "cpp-serializer/location.hpp"
 #include <concepts>
+#include <optional>
 #include <string_view>
 #include <type_traits>
 
@@ -26,6 +26,8 @@ namespace CPP_SERIALIZER_NAMESPACE {
     
     template<class T_>
     class Target;
+
+    enum class YesNoRuntime;
     
     /**
      * Type parser concepts will take a context and a string and should convert that string
@@ -224,6 +226,24 @@ namespace CPP_SERIALIZER_NAMESPACE {
     template<class T_>
     concept TargetConcept = requires (T_ t, std::string_view sv, const T_ ct) {
         t.Put(sv);
+    };
+
+    template<class T_>
+    concept TextParserTraits = requires {
+        {T_::SkipList} -> std::convertible_to<YesNoRuntime>;
+        {T_::Folding} -> std::convertible_to<YesNoRuntime>;
+        {T_::Glue} -> std::convertible_to<YesNoRuntime>;
+    };
+
+    template<class T_>
+    concept TextSettingsConcept = requires {
+        {T_::SkipList} -> std::convertible_to<YesNoRuntime>;
+        {T_::Folding} -> std::convertible_to<YesNoRuntime>;
+        {T_::Glue} -> std::convertible_to<YesNoRuntime>;
+
+
+        requires DataTraitConcept<typename T_::DataTraits>;
+        requires DataConcept<typename T_::DataType>;
     };
 }
     

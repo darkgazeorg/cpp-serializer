@@ -1,11 +1,15 @@
 #pragma once
 
-#include "cpp-serializer/types.h"
+#include "types.hpp"
+#include <cstddef>
 #include <string_view>
 #include <tuple>
 #include <type_traits>
+#include <utility>
 
 namespace CPP_SERIALIZER_NAMESPACE {
+
+    void ConstEvalError(auto);
     
     template<class T_, template<class...> class O_>
     struct IsInstantiation : public std::false_type {};
@@ -27,150 +31,72 @@ namespace CPP_SERIALIZER_NAMESPACE {
     
     template<class T_> concept StringLike = std::is_convertible_v<T_, const std::string_view>;
     
-    template<class IC_>
-    struct DecrementToZero {
-        using Type = std::integral_constant<int, IC_::value - 1>;
-    };
-    
-    template<>
-    struct DecrementToZero<std::integral_constant<int, 0>> {
-        using Type = std::integral_constant<int, 0>;
-    };
-    
-    template<int ...args>
-    struct Sum;
+    template<YesNoRuntime ...Opts>
+    struct GetLastOpt;
 
-    template<>
-    struct Sum<> {
-        static constexpr int value = 0;
+    template<YesNoRuntime Opt, YesNoRuntime Opt2, YesNoRuntime ...Rest>
+    struct GetLastOpt<Opt, Opt2, Rest...> {
+        static constexpr YesNoRuntime value = GetLastOpt<Opt2, Rest...>::value;
     };
 
-    template<int first, int ...args>
-    struct Sum<first, args...> {
-        static constexpr int value = first + Sum<args...>::value;
-    };
-    
-    template<bool ...args>
-    struct SumTrue;
-    
-    template<>
-    struct SumTrue<> {
-        static constexpr int value = 0;
-    };
-    
-    template<bool first, bool ...args>
-    struct SumTrue<first, args...> {
-        static constexpr int value = first + Sum<args...>::value;
-    };
-    
-    template<class IC_, bool ...args>
-    struct SumTrueUntil;
-    
-    template<class IC_>
-    struct SumTrueUntil<IC_> {
-        static constexpr int value = 0;
-    };
-    
-    template<bool first, bool ...args>
-    struct SumTrueUntil<std::integral_constant<int, 0>, first, args...> {
-        static constexpr int value = 0;
-    };
-    
-    template<>
-    struct SumTrueUntil<std::integral_constant<int, 0>> {
-        static constexpr int value = 0;
-    };
-    
-    template<class IC_, bool first, bool ...args>
-    struct SumTrueUntil<IC_, first, args...> {
-        static constexpr int value = first + SumTrueUntil<typename DecrementToZero<IC_>::Type, args...>::value;
-    };
-    
-    template<bool state>
-    struct GetIf {
-        template<bool ...args, class Tuple_>
-        static bool Obtain(Tuple_ data) {
-            return std::get<SumTrue<args...>>(data);
-        }
-    };
-    
-    template<>
-    struct GetIf<false> {
-        template<class ...Args>
-        static bool Obtain(Args ...) {
-            return false;
-        }
+    template<YesNoRuntime Opt>
+    struct GetLastOpt<Opt> {
+        static constexpr YesNoRuntime value = Opt;
     };
     
     template<YesNoRuntime state>
-    struct GetMixedTime {
-        template<YesNoRuntime ...args, class Tuple_>
-        static auto Obtain(Tuple_ data) {
-            return std::get<SumTrue<args == YesNoRuntime::Runtime...>::value>(data);
+    struct GetMixedTimeHelper {
+        template<size_t ind, class Tuple_>
+        static auto Obtain(const Tuple_ &data) {
+            return data[ind];
         }
     };
     
     template<>
-    struct GetMixedTime<YesNoRuntime::No> {
-        template<YesNoRuntime ...args, class Tuple_>
-        static auto Obtain(Tuple_) {
+    struct GetMixedTimeHelper<YesNoRuntime::No> {
+        template<size_t ind, class Tuple_>
+        static auto Obtain(const Tuple_&) {
             return false;
         }
     };
     
     
     template<>
-    struct GetMixedTime<YesNoRuntime::Yes> {
-        template<YesNoRuntime ...args, class Tuple_>
-        static auto Obtain(Tuple_) {
+    struct GetMixedTimeHelper<YesNoRuntime::Yes> {
+        template<size_t ind, class Tuple_>
+        static auto Obtain(const Tuple_&) {
             return true;
         }
     };
+
+    /**
+     * Get the Mixed Time option, supply options up to and including
+     * the item to be obtained. If you want to get the second option:
+     * GetMixedTimeOption<opt1, opt2>(data);
+     */
+    template<YesNoRuntime arg, int ind, class Tuple_>
+    auto GetMixedTimeOption(const Tuple_& data) {
+        return GetMixedTimeHelper<arg>::template Obtain<ind>(data);
+    }
     
-    template<bool state>
-    struct GetIfNot {
-        template<bool ...args, class Tuple_>
-        static bool Obtain(Tuple_ data) {
-            return std::get<SumTrue<args...>>(data);
-        }
-    };
-    
-    template<>
-    struct GetIfNot<true> {
-        template<class ...Args>
-        static bool Obtain(Args ...) {
-            return true;
-        }
-    };
-    
-    template<class Type_, bool Opt>
-    struct MaskTupleImp;
-    
-    template<class Type_>
-    struct MaskTupleImp<Type_, false> {
+    template<class Type_, YesNoRuntime Opt>
+    struct MaskedTupleImp {
         using Type = std::tuple<>;
     };
     
     template<class Type_>
-    struct MaskTupleImp<Type_, true> {
+    struct MaskedTupleImp<Type_, YesNoRuntime::Runtime> {
         using Type = std::tuple<Type_>;
     };
     
-    template<bool ...Opts>
-    auto MaskedMixedType() {
-        return std::tuple_cat(typename MaskTupleImp<bool, Opts>::Type{}...);
+    template<YesNoRuntime ...Opts>
+    consteval auto MaskedMixedTimeDataHelper() {
+        return std::tuple_cat(typename MaskedTupleImp<bool, Opts>::Type{}...);
     }
     
-    //this will not work?
-    template<int index, bool ...Opts, class TupleType_>
-    auto &MaskedGet(TupleType_ &data) {
-        return std::get<SumTrueUntil<std::integral_constant<int, index>, Opts...>::value>(data);
+    template<YesNoRuntime ...Opts>
+    consteval auto MaskedMixedTimeData() {
+        return MaskedMixedTimeDataHelper<Opts...>();
     }
-    
-    //this will not work?
-    template<int index, bool ...Opts, class TupleType_>
-    const auto &MaskedGet(const TupleType_ &data) {
-        return std::get<SumTrueUntil<std::integral_constant<int, index>, Opts...>::value>(data);
-    }
-    
+
 }

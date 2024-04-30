@@ -36,6 +36,13 @@ TEST_CASE("Test text reader string", "[Parse][Text][Source<path>]") {
     TextTransportSimple.Parse("Hello", data);
     REQUIRE(data.GetData() == "Hello");
 
-    TextTransportSimple.Parse("Hello\nWorld", data);
-    REQUIRE(data.GetData() == "Hello World");
+    RuntimeTextTransport transport;
+    RuntimeTextTransport::DataType data2;
+    transport.SetGlue(true);
+
+    transport.Parse("Hello\nWorld", data2);
+    REQUIRE(data2.GetData() == "Hello World");
+
+    transport.Parse("Hello\n\nWorld", data2);
+    REQUIRE(data2.GetData() == "Hello\nWorld");
 }

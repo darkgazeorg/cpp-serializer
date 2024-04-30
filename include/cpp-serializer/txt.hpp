@@ -2,103 +2,107 @@
 
 #include "config.hpp"
 
-#include "cpp-serializer/concepts.hpp"
-#include "cpp-serializer/location.hpp"
-#include "cpp-serializer/tmp.hpp"
-#include "cpp-serializer/txt.helper.hpp"
-#include "cpp-serializer/types.h"
+#include "concepts.hpp"
+#include "location.hpp"
+#include "tmp.hpp"
+#include "txt-helper.hpp"
+#include "types.hpp"
 #include "data.hpp"
 #include "source.hpp"
+#include <array>
 
 #include <string>
-#include <string_view>
-#include <utility>
+#include <tuple>
+
+#include "macros.hpp"
 
 namespace CPP_SERIALIZER_NAMESPACE {
     
-    namespace internal {
+    template<LocationConcept LocationType_>
+    struct TextDataTraits {            
+        using StorageType = std::string;
         
-        struct SimpleTextDataConverter {
-            using LocationType = NoLocation;
-            auto operator()(const Context<LocationType> &c, const std::string_view &s) {
-                return std::pair{c.location, std::string(s)};
-            }
-            auto operator()(std::string &s) { return s; }
-            auto operator()(const std::string &s) { return s; }
-        };
+        using NumberType = void;
+        using IntegerType = void;
+        using RealType = void;
+        using StringType = std::string;
+        using NullType = void;
+        using BoolType = void;
+        using IndexType = void;
+        using SequenceType = void;
+        using KeyType = void;
+        using MapType = void;
         
-        template<LocationConcept LocationType_ = NoLocation>
-        struct TextData_SimpleTraits {            
-            using StorageType = std::string;
-            
-            using NumberType = void;
-            using IntegerType = void;
-            using RealType = void;
-            using StringType = std::string;
-            using NullType = void;
-            using BoolType = void;
-            using IndexType = void;
-            using SequenceType = void;
-            using KeyType = void;
-            using MapType = void;
-            
-            using DataParserType = SimpleTextDataConverter;
-            using DataEmitterType = SimpleTextDataConverter;
-            using LocationType = LocationType_;
-        };
-        
-        template<bool skiplist>
-        class texttransportlocationhelper {
-        
-        };
-        
-        template<>
-        class texttransportlocationhelper<true> {
-        public:
-            bool IsParsingSkipList() const {
-                return parseskiplist;
-            }
-            
-            void SetSkipListParsing(bool state) {
-                parseskiplist = state;
-            }
-            
-        
-        protected:
-            bool parseskiplist = true;
-        };
-    }
-    
-    using TextData_Simple = Data<internal::TextData_SimpleTraits<>>;
-    using TextData_SkipList = Data<internal::TextData_SimpleTraits<GlobalInnerLocation>>;
-    
-    template<class T_>
-    concept TextTransportConcept = requires {
-        {T_::GlueLines()} -> std::same_as<bool>;
-        {T_::WordWrap()} -> std::same_as<bool>;
+        using DataParserType = internal::SimpleTextDataConverter;
+        using DataEmitterType = internal::SimpleTextDataConverter;
+        using LocationType = LocationType_;
+    };
+
+    struct SimpleTextSettings {
+        constexpr static auto SkipList = YesNoRuntime::No;
+        constexpr static auto Folding = YesNoRuntime::No;
+        constexpr static auto Glue = YesNoRuntime::No;
+
+        using DataTraits = TextDataTraits<NoLocation>;
+        using DataType   = Data<DataTraits>;
+    };
+
+    struct SimpleSkipListTextSettings {
+        constexpr static auto SkipList = YesNoRuntime::Runtime;
+        constexpr static auto Folding = YesNoRuntime::No;
+        constexpr static auto Glue = YesNoRuntime::No;
+
+        using DataTraits = TextDataTraits<InnerLocation>;
+        using DataType   = Data<DataTraits>;
     };
     
+    struct RuntimeTextSettings {
+        constexpr static auto SkipList = YesNoRuntime::No;
+        constexpr static auto Folding = YesNoRuntime::Runtime;
+        constexpr static auto Glue = YesNoRuntime::Runtime;
+
+        using DataTraits = TextDataTraits<NoLocation>;
+        using DataType   = Data<DataTraits>;
+    };
+    
+    CPPSER_DEFINE_MIXTIME_STRUCT(TextTransport, SkipList, skiplist, true)
+    CPPSER_DEFINE_MIXTIME_STRUCT(TextTransport, Folding, folding, true)
+    CPPSER_DEFINE_MIXTIME_STRUCT(TextTransport, Glue, glue, true)
+
+    
     //TODO: Implement line glueing, escape characters as well as wordwrap
-    template<DataConcept DataType_ = TextData_Simple>
-    class TextTransport : public internal::texttransportlocationhelper<DataType_::DataTraits::LocationType::HasSkipList()> {
+    /**
+     * @brief Allows parsing emmiting text files.
+     *
+     * This class can handle text files with different properties, such as wordwrap, whitespace folding.
+     * @important Currently this class is used for experimentation, it should not be used.
+     *
+     * @tparam Settings_ Use this structure to specify text transport settings 
+     */
+    template<TextSettingsConcept Settings_ = SimpleTextSettings>
+    class TextTransport : 
+        public internal::TextTransport_skiplist_helper<Settings_::SkipList>,
+        public internal::TextTransport_folding_helper<Settings_::Folding>,
+        public internal::TextTransport_glue_helper<Settings_::Glue> 
+    {
     public:
-        using DataType     = DataType_;
-        using DataTraits   = DataType_::DataTraits;
-        using StorageType  = DataType_::StorageType;
+        using Settings     = Settings_;
+        using DataType     = Settings::DataType;
+        using DataTraits   = Settings::DataTraits;
+        using StorageType  = DataType::StorageType;
         using LocationType = DataTraits::LocationType;
         
         template<class T_, bool AutoTranslateSource = true>
         void Parse(T_ &source, DataType &data) {
             auto reader = make_source<AutoTranslateSource>(source);
             
-            auto settings = MaskedMixedType<LocationType::HasSkipList(), false, true>();
+            auto settings = std::array<bool, 3>{};
             
-            if constexpr(LocationType::HasSkipList())
-                MaskedGet<0, LocationType::HasSkipList(), false, false>(settings) = this->IsParsingSkipList();
-
-            MaskedGet<2, LocationType::HasSkipList(), false, false>(settings) = true;
+            CPPSER_READ_IF_RUNTIME(SkipList, 0);
+            CPPSER_READ_IF_RUNTIME(Folding, 1);
+            CPPSER_READ_IF_RUNTIME(Glue, 2);
             
-            internal::parseText<LocationType::HasSkipList() ? YesNoRuntime::Runtime : YesNoRuntime::No, YesNoRuntime::Yes, YesNoRuntime::Runtime>(reader, data, settings);
+            internal::parseText<Settings::SkipList, Settings::Folding, Settings::Glue>(reader, data, settings);
         }
         
         template<class T_>
@@ -111,5 +115,8 @@ namespace CPP_SERIALIZER_NAMESPACE {
     };
     
     inline TextTransport<> TextTransportSimple;
+    using RuntimeTextTransport = TextTransport<RuntimeTextSettings>;
 
 }
+
+#include "unmacro.hpp"
