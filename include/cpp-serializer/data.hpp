@@ -2,7 +2,11 @@
 
 #include "config.hpp"
 
+#include "cpp-serializer/tmp.hpp"
 #include "data-helper.hpp"
+#include <any>
+#include <string_view>
+#include <variant>
 
 
 namespace CPP_SERIALIZER_NAMESPACE {
@@ -49,6 +53,29 @@ namespace CPP_SERIALIZER_NAMESPACE {
 
         void SetLocation(const DataTraits::LocationType &value) {
             location = value;
+        }
+
+        auto GetLocation(size_t offset) {
+            if constexpr(!std::is_same_v<typename DataTraits::StringType, void>) {
+                if constexpr(IsInstantiationV<StorageType, std::variant>) {
+                    auto data = GetData();
+
+                    if(std::holds_alternative<typename DataTraits::StringType>(data))
+                        return location.Obtain(offset, std::get<typename DataTraits::StringType>(data));
+                }
+                else if constexpr(std::is_same_v<StorageType, std::any>) {
+                    auto data = GetData();
+
+                    if(data.type() == typeid(StorageType)) {
+                        return location.Obtain(offset, std::any_cast<typename DataTraits::StringType>(data));
+                    }
+                }
+                else if constexpr(std::is_convertible_v<StorageType, std::string_view>) {
+                    return location.Obtain(offset, std::any_cast<typename DataTraits::StringType>(GetData()));
+                }
+            }
+                
+            return location.Obtain(offset, "");;
         }
     
     private:

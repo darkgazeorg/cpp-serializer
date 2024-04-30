@@ -11,10 +11,10 @@
 
 namespace CPP_SERIALIZER_NAMESPACE::internal {
     
-#include "macros.hpp"
-       
+    template<class LocationType_ = NoLocation>
     struct SimpleTextDataConverter {
-        using LocationType = NoLocation;
+        using LocationType = LocationType_;
+
         auto operator()(const Context<LocationType> &c, const std::string_view &s) {
             return std::pair{c.location, std::string(s)};
         }
@@ -48,37 +48,38 @@ namespace CPP_SERIALIZER_NAMESPACE::internal {
                 auto c = reader.Get();
                 
                 //new line
-                if(c == '\n' || c == '\r') {
+                if(c == '\n' || c == '\r') {     
                     //If it is \r\n, ignore \n
-                    if(c == '\r' && reader.TryPeek() == '\n') {
-                        reader.Advance();
-                    }
-                    
-                    CPPSER_IF_MIXED(LocationType::HasSkipList(), skiplist) {
-                        line++;
-                        auto curlocation = LocationType{line, 1};
-                        
-                        if constexpr(LocationType::HasResourceName) {
-                            curlocation.ResourceName = reader.GetResourceName();
-                        }
-                        
-                        location.SkipList[reader.Tell()] = curlocation;
-                    }
-                    
-                    if(glue) {
+                    if(c == '\r' && reader.TryPeek() == '\n') reader.Advance();
+
+                    if(glue) { //join lines if there is no additional line breaks
                         if(seqline < 1) {
-                            seqline++;
+                            seqline++; //ignore first enter, if space is needed, it will be handled later
                         }
                         else {
-                            seqline++;
+                            //There is an extra line in source, we need to add this.
+                            if(seqline == 1) {
+                                line++;
+                            }
+
+                            seqline++; //incremented further to signal enter is added
+
                             str.push_back('\n');
+                            AddNewLine(skiplist, location, reader, str.size(), line);
                         }
                     }
-                    else str.push_back('\n');
+                    else {
+                        str.push_back('\n'); //simply add the new line
+                        AddNewLine(skiplist, location, reader, str.size(), line);
+                    }
                 }
                 else {
+                    //if only one enter was there, convert it to space
+                    //this can only happen if glue is on
                     if(seqline == 1) {
                         str.push_back(' ');
+                        //from the source perspective, next character is on the next line
+                        AddNewLine(skiplist, location, reader, str.size(), line);
                     }
 
                     str.push_back(c);
@@ -96,6 +97,5 @@ namespace CPP_SERIALIZER_NAMESPACE::internal {
         target.SetLocation(location);
     }
 
-#include "unmacro.hpp"
 
 }

@@ -96,6 +96,7 @@ namespace CPP_SERIALIZER_NAMESPACE {
      */
     template<class T_>
     concept LocationConcept = requires (T_ t, size_t bo, const std::string_view sv) {
+        typename T_::ObtainedType;
         {T_::HasByteOffset()} -> std::same_as<bool>;
         {T_::HasCharOffset()} -> std::same_as<bool>;
         {T_::HasLineOffset()} -> std::same_as<bool>;

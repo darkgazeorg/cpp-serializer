@@ -2,6 +2,7 @@
 
 #include "config.hpp"
 
+#include "cpp-serializer/concepts.hpp"
 #include "cpp-serializer/utf.hpp"
 #include <map>
 #include <optional>
@@ -13,21 +14,28 @@
 namespace CPP_SERIALIZER_NAMESPACE {
     
     namespace internal {
-        template<class Parent, bool skiplist> 
+        template<LocationConcept Parent, bool skiplist = Parent::HasSkipList()> 
         Parent::ObtainedType ObtainLocation(const Parent &source, size_t byte_offset, const std::string_view &data) {
             auto loc = static_cast<Parent::ObtainedType>(source);
             auto off = size_t{0};
             
             //use skip list if available
             if constexpr(skiplist) {
-                if(auto it = source.SkipList.lower_bound(byte_offset); it != end(source.SkipList)) {
+                auto it = source.SkipList.upper_bound(byte_offset); 
+
+                if(!source.SkipList.empty() && it != begin(source.SkipList)) 
+                    it = std::prev(it);
+                else
+                    it = end(source.SkipList);
+
+                if(it != end(source.SkipList)) {
                     loc = it->second;
                     off = it->first;
                 }
             }
             
             bool prevn = false;
-            //go through the data untill we hit the byte offset we want
+            //go through the data until we hit the byte offset we want
             while(off < byte_offset && off < data.size()) {
                 //get a character and move offset by how many bytes are
                 //necessary to move that utf8 character
@@ -36,13 +44,13 @@ namespace CPP_SERIALIZER_NAMESPACE {
 
                 if(c == '\n') {
                     prevn = true;
-                    loc.LineOffset++;
+                    if constexpr(Parent::ObtainedType::HasLineOffset()) loc.LineOffset++;
                     loc.CharOffset = 1;
                 }
                 else if(c == '\r') {
                     if(prevn) prevn = false;
                     else {
-                        loc.LineOffset++;
+                        if constexpr(Parent::ObtainedType::HasLineOffset()) loc.LineOffset++;
                         loc.CharOffset = 1;
                     }
                 }
@@ -51,6 +59,8 @@ namespace CPP_SERIALIZER_NAMESPACE {
                     prevn = false;
                 }
             }
+
+            if(off != byte_offset) loc.CharOffset += byte_offset - off;
             
             return loc;
         }
@@ -61,6 +71,8 @@ namespace CPP_SERIALIZER_NAMESPACE {
      * satisfies location concept.
      */
     struct NoLocation {
+        using ObtainedType = NoLocation;
+
         NoLocation(size_t, size_t ,size_t) { }
         NoLocation() { }
 
@@ -69,12 +81,19 @@ namespace CPP_SERIALIZER_NAMESPACE {
         static constexpr bool HasLineOffset() { return false; }
         static constexpr bool HasSkipList() { return false; }
         static constexpr bool HasResourceName() { return false; }
+
+        /// Obtains line location from the given offset and data
+        auto Obtain(size_t, const std::string_view &) {
+            return ObtainedType{};
+        }
     };
     
     /**
      * Only stores byte offset from the start of the source.
      */
     struct ByteLocation {
+        using ObtainedType = ByteLocation;
+
         ByteLocation() = default;
         
         ByteLocation(size_t byte_offset, size_t, size_t) :
@@ -90,6 +109,11 @@ namespace CPP_SERIALIZER_NAMESPACE {
         static constexpr bool HasLineOffset() { return false; }
         static constexpr bool HasSkipList() { return false; }
         static constexpr bool HasResourceName() { return false; }
+
+        /// Obtains line location from the given offset and data
+        auto Obtain(size_t byte_offset, const std::string_view &) {
+            return ByteLocation{byte_offset};
+        }
         
         size_t ByteOffset = 0;
     };
@@ -99,6 +123,8 @@ namespace CPP_SERIALIZER_NAMESPACE {
      * Character offset is in unicode code points.
      */
     struct Offset {
+        using ObtainedType = Offset;
+
         Offset() = default;
 
         Offset(size_t byte_offset, size_t, size_t char_offset) :
@@ -115,6 +141,11 @@ namespace CPP_SERIALIZER_NAMESPACE {
         static constexpr bool HasLineOffset() { return false; }
         static constexpr bool HasSkipList() { return false; }
         static constexpr bool HasResourceName() { return false; }
+
+        /// Obtains line location from the given offset and data
+        auto Obtain(size_t byte_offset, const std::string_view &data) {
+            return internal::ObtainLocation(*this, byte_offset, data);
+        }
         
         size_t ByteOffset = 0;
         size_t CharOffset = 0;
@@ -150,7 +181,7 @@ namespace CPP_SERIALIZER_NAMESPACE {
         
         /// Obtains line location from the given offset and data
         auto Obtain(size_t byte_offset, const std::string_view &data) {
-            return internal::ObtainLocation<LineLocation, false>(*this, byte_offset, data);
+            return internal::ObtainLocation(*this, byte_offset, data);
         }
     };
     
@@ -186,7 +217,7 @@ namespace CPP_SERIALIZER_NAMESPACE {
         
         /// Obtains line location from the given offset and data
         auto Obtain(size_t byte_offset, const std::string_view &data) {
-            return internal::ObtainLocation<GlobalLocation, false>(*this, byte_offset, data);
+            return internal::ObtainLocation(*this, byte_offset, data);
         }
     };
     
@@ -229,7 +260,7 @@ namespace CPP_SERIALIZER_NAMESPACE {
         
         /// Obtains line location from the given offset and data
         auto Obtain(size_t byte_offset, const std::string_view &data) {
-            return internal::ObtainLocation<InnerLocation, true>(*this, byte_offset, data);
+            return internal::ObtainLocation(*this, byte_offset, data);
         }
     };
     
@@ -272,9 +303,44 @@ namespace CPP_SERIALIZER_NAMESPACE {
         
         /// Obtains line location from the given offset and data
         auto Obtain(size_t byte_offset, const std::string_view &data) {
-            return internal::ObtainLocation<GlobalInnerLocation, true>(*this, byte_offset, data);
+            return internal::ObtainLocation(*this, byte_offset, data);
         }
     };
+
+#include "macros.hpp"
+
+    template<LocationConcept LocationType, SourceConcept Source>
+    void SetSkip(bool skiplist, LocationType &location, const Source &reader, size_t offset, size_t line_offset, size_t char_offset) {
+        CPPSER_IF_MIXED(LocationType::HasSkipList(), skiplist) {
+            auto curlocation = typename LocationType::ObtainedType{};
+
+            if constexpr(LocationType::ObtainedType::HasByteOffset()) {
+                curlocation.ByteOffset = reader.Tell();
+            }
+            
+            if constexpr(LocationType::ObtainedType::HasLineOffset()) {
+                curlocation.LineOffset = line_offset;
+            }
+            
+            if constexpr(LocationType::ObtainedType::HasCharOffset()) {
+                curlocation.CharOffset = char_offset;
+            }
+                                    
+            if constexpr(LocationType::ObtainedType::HasResourceName()) {
+                curlocation.ResourceName = reader.GetResourceName();
+            }
+            
+            location.SkipList[offset] = curlocation;
+        }
+    }
+
+#include "unmacro.hpp"
+
+
+    template<LocationConcept LocationType, SourceConcept Source>
+    void AddNewLine(bool skiplist, LocationType &location, const Source &reader, size_t offset, size_t &line_offset) {
+        SetSkip(skiplist, location, reader, offset, ++line_offset, 1);
+    }
     
     struct Path {    
         enum Type {

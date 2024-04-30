@@ -31,18 +31,69 @@ TEST_CASE("Test text reader string", "[Parse][Text][Source<string_view>]") {
     REQUIRE(data.GetData() == "Hello");
 }
 
-TEST_CASE("Test text reader string", "[Parse][Text][Source<path>]") {
-    TextTransport<>::DataType data;
-    TextTransportSimple.Parse("Hello", data);
-    REQUIRE(data.GetData() == "Hello");
-
+TEST_CASE("Test text reader string", "[Parse][Text][RuntimeSettings]") {
     RuntimeTextTransport transport;
-    RuntimeTextTransport::DataType data2;
+    RuntimeTextTransport::DataType data;
+
+    transport.SetGlue(false);
+
+    transport.Parse("Hello\nWorld", data);
+    REQUIRE(data.GetData() == "Hello\nWorld");
+
+
     transport.SetGlue(true);
 
-    transport.Parse("Hello\nWorld", data2);
-    REQUIRE(data2.GetData() == "Hello World");
+    transport.Parse("Hello\nWorld", data);
+    REQUIRE(data.GetData() == "Hello World");
 
-    transport.Parse("Hello\n\nWorld", data2);
-    REQUIRE(data2.GetData() == "Hello\nWorld");
+    transport.Parse("Hello\n\nWorld", data);
+    REQUIRE(data.GetData() == "Hello\nWorld");
+}
+
+TEST_CASE("Test text reader skiplist", "[Parse][Text][SkipList]") {
+    RuntimeTextTransportSkipList transport;
+    RuntimeTextTransportSkipList::DataType data;
+
+    std::string source;
+
+
+    source = "abc\nâbc";
+    transport.Parse(source, data);
+    auto parsed = data.GetData();
+
+    REQUIRE(parsed == "abc âbc");
+
+    auto loc = data.GetLocation(0);
+    REQUIRE(loc.LineOffset == 1); REQUIRE(loc.CharOffset == 1);
+
+    loc = data.GetLocation(3);
+    REQUIRE(loc.LineOffset == 1); REQUIRE(loc.CharOffset == 4);
+
+    loc = data.GetLocation(4);
+    REQUIRE(loc.LineOffset == 2); REQUIRE(loc.CharOffset == 1);
+
+    loc = data.GetLocation(6);
+    REQUIRE(loc.LineOffset == 2); REQUIRE(loc.CharOffset == 2);
+
+    loc = data.GetLocation(7);
+    REQUIRE(loc.LineOffset == 2); REQUIRE(loc.CharOffset == 3);
+
+
+    source = "abc\n\nâbc\nabc";
+    transport.Parse(source, data);
+    parsed = data.GetData();
+
+    REQUIRE(parsed == "abc\nâbc abc");
+
+    loc = data.GetLocation(4);
+    REQUIRE(loc.LineOffset == 3); REQUIRE(loc.CharOffset == 1);
+
+    loc = data.GetLocation(7);
+    REQUIRE(loc.LineOffset == 3); REQUIRE(loc.CharOffset == 3);
+
+    loc = data.GetLocation(8);
+    REQUIRE(loc.LineOffset == 3); REQUIRE(loc.CharOffset == 4);
+
+    loc = data.GetLocation(9);
+    REQUIRE(loc.LineOffset == 4); REQUIRE(loc.CharOffset == 1);
 }

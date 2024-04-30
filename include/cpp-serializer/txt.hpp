@@ -31,8 +31,8 @@ namespace CPP_SERIALIZER_NAMESPACE {
         using KeyType = void;
         using MapType = void;
         
-        using DataParserType = internal::SimpleTextDataConverter;
-        using DataEmitterType = internal::SimpleTextDataConverter;
+        using DataParserType = internal::SimpleTextDataConverter<LocationType_>;
+        using DataEmitterType = internal::SimpleTextDataConverter<LocationType_>;
         using LocationType = LocationType_;
     };
 
@@ -54,12 +54,13 @@ namespace CPP_SERIALIZER_NAMESPACE {
         using DataType   = Data<DataTraits>;
     };
     
+    template<class Location = NoLocation>
     struct RuntimeTextSettings {
-        constexpr static auto SkipList = YesNoRuntime::No;
+        constexpr static auto SkipList = Location::HasSkipList() ? YesNoRuntime::Runtime : YesNoRuntime::No;
         constexpr static auto Folding = YesNoRuntime::Runtime;
         constexpr static auto Glue = YesNoRuntime::Runtime;
 
-        using DataTraits = TextDataTraits<NoLocation>;
+        using DataTraits = TextDataTraits<Location>;
         using DataType   = Data<DataTraits>;
     };
     
@@ -113,7 +114,8 @@ namespace CPP_SERIALIZER_NAMESPACE {
     };
     
     inline TextTransport<> TextTransportSimple;
-    using RuntimeTextTransport = TextTransport<RuntimeTextSettings>;
+    using RuntimeTextTransport = TextTransport<RuntimeTextSettings<>>;
+    using RuntimeTextTransportSkipList = TextTransport<RuntimeTextSettings<GlobalInnerLocation>>;
 
 }
 
