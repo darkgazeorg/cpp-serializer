@@ -241,6 +241,7 @@ namespace CPP_SERIALIZER_NAMESPACE {
         {T_::SkipList} -> std::convertible_to<YesNoRuntime>;
         {T_::Folding} -> std::convertible_to<YesNoRuntime>;
         {T_::Glue} -> std::convertible_to<YesNoRuntime>;
+        {T_::WordWrap} -> std::convertible_to<YesNoRuntime>;
 
 
         requires DataTraitConcept<typename T_::DataTraits>;

@@ -1,15 +1,21 @@
 #ifndef CPPSER_MACROS_DEFINED
 
+
+#   define CPPSER_DEFINE_MIXTIME_STRUCT_LEAVEOPEN(classname, publicname, privatename, def) \
+    template<YesNoRuntime>\
+    struct classname ## _ ## privatename ## _helper {};\
+    template<>\
+    struct classname ## _ ## privatename ## _helper<YesNoRuntime::Runtime> {\
+    protected: \
+        bool privatename = def;\
+    public: \
+        bool Get ## publicname() const { return privatename; }\
+        void Set ## publicname(bool value) { privatename = value; }\
+    
+
 #   define CPPSER_DEFINE_MIXTIME_STRUCT(classname, publicname, privatename, def)  \
-    namespace internal {\
-        template<YesNoRuntime>\
-        struct classname ## _ ## privatename ## _helper {};\
-        template<>\
-        struct classname ## _ ## privatename ## _helper<YesNoRuntime::Runtime> {\
-            bool Get ## publicname() const { return privatename; }\
-            void Set ## publicname(bool value) { privatename = value; }\
-        protected: \
-            bool privatename = def;\
+    namespace internal { \
+        CPPSER_DEFINE_MIXTIME_STRUCT_LEAVEOPEN(classname, publicname, privatename, def)\
         };\
     }
 

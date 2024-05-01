@@ -14,6 +14,7 @@
 namespace CPP_SERIALIZER_NAMESPACE {
     
     namespace internal {
+        /// Internal implementation of ObtainLocation calls in Location structures.
         template<LocationConcept Parent, bool skiplist = Parent::HasSkipList()> 
         Parent::ObtainedType ObtainLocation(const Parent &source, size_t byte_offset, const std::string_view &data) {
             auto loc = static_cast<Parent::ObtainedType>(source);
@@ -309,6 +310,12 @@ namespace CPP_SERIALIZER_NAMESPACE {
 
 #include "macros.hpp"
 
+    /**
+     * @brief Adds a skip point to a skiplist
+     * This function checks if the location type supports skip, if not, this function
+     * does not perform any operation. This function also checks necessary data for
+     * the location and assigns them as needed. 
+     */
     template<LocationConcept LocationType, SourceConcept Source>
     void AddSkip(bool skiplist, LocationType &location, const Source &reader, size_t offset, size_t line_offset, size_t char_offset) {
         CPPSER_IF_MIXED(LocationType::HasSkipList(), skiplist) {
@@ -336,28 +343,57 @@ namespace CPP_SERIALIZER_NAMESPACE {
 
 #include "unmacro.hpp"
 
-
+    /**
+     * @brief Adds a skip list entry for a line break in the source.
+     * This function adds a skip list entry for a line the source data. Given line offset
+     * is automatically increased. char_offset is used as 1. If later char offset is found
+     * not to be one, another AddSkip call will update the entry.
+     */
     template<LocationConcept LocationType, SourceConcept Source>
-    void AddNewLine(bool skiplist, LocationType &location, const Source &reader, size_t offset, size_t &line_offset) {
+    void AddSkipLine(bool skiplist, LocationType &location, const Source &reader, size_t offset, size_t &line_offset) {
         AddSkip(skiplist, location, reader, offset, ++line_offset, 1);
     }
+
+    /**
+     * @brief Adds a skip list entry for a line break in the source.
+     * This function adds a skip list entry for a line the source data. Given line offset
+     * is automatically increased. char_offset is set to 1. If later char offset is found
+     * not to be one, another AddSkip call will update the entry.
+     */
+    template<LocationConcept LocationType, SourceConcept Source>
+    void AddSkipLine(bool skiplist, LocationType &location, const Source &reader, size_t offset, size_t &line_offset, size_t &char_offset) {
+        char_offset = 1;
+        AddSkip(skiplist, location, reader, offset, ++line_offset, char_offset);
+    }
     
+    /**
+     * @brief Path data used in locating resources
+     * Path data is used in complex sources such as xml and yaml to identify types. If the
+     * system is used like a stream like parser, this information is passed to the parsing
+     * function along with the obtained data.
+     */
     struct Path {    
+        /// Node type could be named or indexed. If nothing is actually used, cppser will
+        /// create an index sequence
         enum Type {
             Sequence,
             Map
         };
         
+        /// Entry for a node. Attributes are only used in some contextes such as xml.
         struct Entry {
             Type type;
             std::variant<std::string_view, int> entry;
             std::map<std::string, std::string> attributes;
         };
         
+        /// Entries in this path. Does not include the current element as it might not
+        /// be a node itself.
         std::vector<Entry> entries;
     };
     
-    
+    /// Context stores parsing context: location and path data. Not all types require
+    /// a path, in that case path will be left empty.
     template<class LocationType>
     struct Context {
         LocationType location;

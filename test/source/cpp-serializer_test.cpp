@@ -18,13 +18,6 @@ TEST_CASE("UTF8Bytes", "[helpers][utf]") {
     REQUIRE(UTF8Bytes(str[6]) == 4);
 }
 
-TEST_CASE("File offset", "[Basics]") {
-    /*CPPSerializer::Offset f;
-    auto [line, off] = f.Offset(5);
-    REQUIRE(line == 0);
-    REQUIRE(off == 5);*/
-}
-
 TEST_CASE("Test text reader string", "[Parse][Text][Source<string_view>]") {
     TextTransport<>::DataType data;
     TextTransportSimple.Parse("Hello", data);
@@ -132,7 +125,4 @@ TEST_CASE("Test text reader skiplist", "[Parse][Text][SkipList]") {
 
     loc = data.GetLocation(14);
     REQUIRE(loc.LineOffset == 3); REQUIRE(loc.CharOffset == 1);
-
-    //space then enter
-
 }
