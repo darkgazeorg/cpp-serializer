@@ -20,6 +20,6 @@ function(add_example NAME)
   add_dependencies(run-examples "run_${NAME}")
 endfunction()
 
-add_example(empty_example)
+add_example(reflow)
 
 add_folders(Example)

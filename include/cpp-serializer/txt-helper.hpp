@@ -181,26 +181,32 @@ namespace CPP_SERIALIZER_NAMESPACE::internal {
             auto lastbreak  = size_t{};
             auto reader     = make_source(data);
             auto chars      = size_t{};
+            auto prevnline  = false;
 
             while(!reader.IsEof()) {
                 auto c = reader.Get();
 
                 //new line resets all
                 if(c == '\n') {
-                    CPPSER_UTF_COPY(reader, c, acc);
+                    if(!prevnline)
+                        acc.push_back('\n');
+                    acc.push_back('\n');
                     target.Put(acc);
                     acc.clear();
                     lastbreak = 0;
                     chars = 0;
+                    prevnline = true;
                 }
                 else if(UTF8IsSpace(c, reader)) {
                     lastbreak = acc.size();
                     CPPSER_UTF_COPY(reader, c, acc);
                     chars++;
+                    prevnline = false;
                 }
                 else {
                     CPPSER_UTF_COPY(reader, c, acc);
                     chars++;
+                    prevnline = false;
 
                     if(chars > wrapwidth) {
                         //write all if no breaking chars are found

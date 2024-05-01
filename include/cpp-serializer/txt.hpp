@@ -90,7 +90,7 @@ namespace CPP_SERIALIZER_NAMESPACE {
     
     //TODO: Implement line glueing, escape characters as well as wordwrap
     /**
-     * @brief Allows parsing emmiting text files.
+     * @brief Allows parsing emmitting text files.
      *
      * This class can handle text files with different properties, such as wordwrap, whitespace folding.
      * @important Currently this class is used for experimentation, it should not be used.

@@ -1,0 +1,29 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "cppdbg",
+            "request": "launch",
+            "name": "Current target",
+            "program": "${command:cmake.buildDirectory}/example/reflow",
+            "args": ["40", "/Data/Programs/System/cpp-serializer/build/dev/example/cmake_install.cmake", "/Data/Programs/System/cpp-serializer/build/dev/example/out.txt"],
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "CMake: build",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }//,
+                // {
+                //     "description": "Enable break on uncaught exceptions",
+                //     "text": "catch throw",
+                //     "ignoreFailures": true
+                // }
+            ]
+        },
+    ]
+}

@@ -4,6 +4,7 @@
 #include "cpp-serializer/concepts.hpp"
 #include "cpp-serializer/tmp.hpp"
 #include <cassert>
+#include <ostream>
 #include <string>
 #include <string_view>
 
@@ -40,10 +41,41 @@ namespace CPP_SERIALIZER_NAMESPACE {
         size_t Tell() const {
             return target.size();
         }
-        
-        
     private:
         std::string &target;
+    };
+
+
+    template<>
+    class Target<std::ostream> {
+    public:
+        /// The data emitted will be stored in the given string
+        Target(std::ostream &target_) : target(target_) { }
+        
+        ~Target() {}
+    
+        void Put(const std::string_view &data) {
+            target << data;
+        }
+
+        void Put(const std::string_view &data, size_t start, size_t len) {
+            target << data.substr(start, len);
+        }
+        
+        void Put(const std::string_view &data, size_t len) {
+            target << data.substr(0, len);
+        }
+        
+        void Put(char data) {
+            target.put(data);
+        }
+        
+        /// Returns the current location of the write pointer
+        size_t Tell() const {
+            return static_cast<size_t>(target.tellp());
+        }
+    private:
+        std::ostream &target;
     };
     
     template<>
@@ -90,6 +122,7 @@ namespace CPP_SERIALIZER_NAMESPACE {
     //TODO: specialize for std::path, ifstream
     
     template<class T_> concept TargetInstatiation = IsInstantiationV<T_, Target>;
+    template<class T_> concept OStreamInstatiation = std::derived_from<T_, std::ostream>;
     template<class T_> concept TargetSpecializedFor = HasImp<Target<std::decay<T_>>>;
     
     template<bool Translate, class T_>
@@ -105,6 +138,11 @@ namespace CPP_SERIALIZER_NAMESPACE {
     template<TargetSpecializedFor T_>
     struct make_target_type<true, T_> {
         using Type = Target<T_>;
+    };
+    
+    template<OStreamInstatiation T_>
+    struct make_target_type<true, T_> {
+        using Type = Target<std::ostream>;
     };
     
     template<StringLike T_>
@@ -126,13 +164,9 @@ namespace CPP_SERIALIZER_NAMESPACE {
         if constexpr(IsInstantiationV<T_, Target> || !Translate) {
             return obj;
         }
-        else if constexpr(HasImp<Target<std::decay<T_>>>) {
-            return Target{obj};
+        else {
+            return typename make_target_type<Translate, T_>::Type{obj};
         }
-        else if constexpr(std::is_convertible_v<T_, const std::string>) {
-            return Target<std::string>{obj};
-        }
-        else return obj;
     }
 
 
