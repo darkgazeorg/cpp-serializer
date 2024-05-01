@@ -143,9 +143,13 @@ TEST_CASE("Test text emit simple", "[Emit][Text][WordWrap]") {
 
 
     transport.SetWrapWidth(10);
-    
+
     data.SetData("Hello world here I am.");
     transport.Emit(data, target);
+    REQUIRE(target == "Hello\nworld here\nI am.");
 
-    REQUIRE(target == "Hello\nworld here\nI am");
+    target = "";
+    data.SetData("Hello world\nhere I am...");
+    transport.Emit(data, target);
+    REQUIRE(target == "Hello\nworld\nhere I\nam...");
 }

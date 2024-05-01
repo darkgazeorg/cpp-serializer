@@ -23,8 +23,16 @@ namespace CPP_SERIALIZER_NAMESPACE {
         void Put(const std::string_view &data) {
             target += data;
         }
+
+        void Put(const std::string_view &data, size_t start, size_t len) {
+            target += data.substr(start, len);
+        }
         
-        void Put(char &data) {
+        void Put(const std::string_view &data, size_t len) {
+            target += data.substr(0, len);
+        }
+        
+        void Put(char data) {
             target.push_back(data);
         }
         
@@ -50,7 +58,15 @@ namespace CPP_SERIALIZER_NAMESPACE {
             target += data;
         }
         
-        void Put(char &data) {
+        void Put(const std::string_view &data, size_t start, size_t len) {
+            target += data.substr(start, len);
+        }
+        
+        void Put(const std::string_view &data, size_t len) {
+            target += data.substr(0, len);
+        }
+        
+        void Put(char data) {
             target.push_back(data);
         }
         

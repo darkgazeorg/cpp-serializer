@@ -2,17 +2,21 @@
 
 #include "config.hpp"
 #include "concepts.hpp"
+#include "cpp-serializer/source.hpp"
 #include "utf.hpp"
 #include "types.hpp"
 #include "location.hpp"
 #include "tmp.hpp"
 
 #include <cctype>
+#include <cstddef>
 #include <limits>
 #include <string>
 #include <array>
 
 namespace CPP_SERIALIZER_NAMESPACE::internal {
+
+#include "macros.hpp"
     
     /// Performs unity string conversion.
     template<class LocationType_ = NoLocation>
@@ -129,15 +133,10 @@ namespace CPP_SERIALIZER_NAMESPACE::internal {
                 }
                 else if(do_space) {
                     if(!has_space) {
-                        str.push_back(c);
-                        //copy additional utf8 bytes
-                        for(size_t i=1; i<UTF8Bytes(c) && !reader.IsEof(); i++) 
-                            str.push_back(reader.Get());
+                        CPPSER_UTF_COPY(reader, c, str);
                     }
                     else {
-                        //eat additional utf8 bytes
-                        for(size_t i=1; i<UTF8Bytes(c); i++) 
-                            reader.TryGet();
+                        CPPSER_UTF_IGNORE_REST(reader, c);
                     }
 
 
@@ -146,11 +145,7 @@ namespace CPP_SERIALIZER_NAMESPACE::internal {
                     has_space = true;
                 }
                 else {
-                    str.push_back(c);
-
-                    //copy additional utf8 bytes
-                    for(size_t i=1; i<UTF8Bytes(c) && !reader.IsEof(); i++) 
-                        str.push_back(reader.Get());
+                    CPPSER_UTF_COPY(reader, c, str);
 
                     char_off++;
                 }
@@ -177,13 +172,71 @@ namespace CPP_SERIALIZER_NAMESPACE::internal {
         //mixed time options
         const bool wordwrap = GetMixedTimeOption<wordwrap_, 0>(settings);
 
-        if(wordwrap) {
 
+        typename DataTraits::DataEmitterType emitter{};
+
+        if(wordwrap) {
+            auto acc        = std::string{};
+            auto data       = emitter(source.GetData());
+            auto lastbreak  = size_t{};
+            auto reader     = make_source(data);
+            auto chars      = size_t{};
+
+            while(!reader.IsEof()) {
+                auto c = reader.Get();
+
+                //new line resets all
+                if(c == '\n') {
+                    CPPSER_UTF_COPY(reader, c, acc);
+                    target.Put(acc);
+                    acc.clear();
+                    lastbreak = 0;
+                    chars = 0;
+                }
+                else if(UTF8IsSpace(c, reader)) {
+                    lastbreak = acc.size();
+                    CPPSER_UTF_COPY(reader, c, acc);
+                    chars++;
+                }
+                else {
+                    CPPSER_UTF_COPY(reader, c, acc);
+                    chars++;
+
+                    if(chars > wrapwidth) {
+                        //write all if no breaking chars are found
+                        if(lastbreak == 0) {
+                            target.Put(acc);
+                            acc.clear();
+                            chars = 0;
+                        }
+                        else {
+                            //write out until the last break
+                            target.Put(acc, lastbreak);
+                            target.Put('\n');
+                            //skip last break
+                            lastbreak += UTF8Bytes(acc[lastbreak]);
+                            acc = acc.substr(lastbreak);
+                            lastbreak = 0;
+
+                            //determine number of characters remaining in the buffer
+                            chars = 0;
+                            auto size = acc.size();
+                            for(size_t i{}; i<size;) {
+                                i += UTF8Bytes(acc[i]);
+                                chars++;
+                            }
+                        }
+                    }
+                }
+            }
+
+            //write the remaining in the buffer
+            target.Put(acc);
         }
         else {
-            typename DataTraits::DataEmitterType emitter{};
-            
             target.Put(emitter(source.GetData()));
         }
     }
+
+#include "unmacro.hpp"
 }

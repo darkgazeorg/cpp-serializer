@@ -29,5 +29,15 @@
 
 #   define CPPSER_IF_MIXED(constex, reg) if constexpr(constex) if(reg)
 
+//These macros are used to improve debug speed by inlining this code
+#   define CPPSER_UTF_COPY(reader, first, target) \
+        target.push_back(first); \
+        for(size_t i=1; i<UTF8Bytes(first) && !reader.IsEof(); i++) \
+            target.push_back(reader.Get())
+
+#   define CPPSER_UTF_IGNORE_REST(reader, c) \
+        for(size_t i=1; i<UTF8Bytes(c) && !reader.IsEof(); i++)  \
+            reader.TryGet()
+
 #define CPPSER_MACROS_DEFINED
 #endif
