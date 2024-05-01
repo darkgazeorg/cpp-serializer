@@ -2,7 +2,7 @@
 
 #include "config.hpp"
 #include "concepts.hpp"
-#include "cpp-serializer/utf.hpp"
+#include "utf.hpp"
 #include "types.hpp"
 #include "location.hpp"
 #include "tmp.hpp"
@@ -10,6 +10,7 @@
 #include <cctype>
 #include <limits>
 #include <string>
+#include <array>
 
 namespace CPP_SERIALIZER_NAMESPACE::internal {
     
@@ -43,7 +44,7 @@ namespace CPP_SERIALIZER_NAMESPACE::internal {
      *        have no effect unless corresponding template argument is set to Runtime
      */
     template<YesNoRuntime skiplist_, YesNoRuntime folding_, YesNoRuntime glue_, SourceConcept SourceType, DataConcept DataType>
-    void parseText(SourceType &reader, DataType &target, const std::array<bool, 3> &settings) {
+    void ParseText(SourceType &reader, DataType &target, const std::array<bool, 3> &settings) {
         //extract necessary types
         using DataTraits   = DataType::DataTraits;
         using LocationType = DataTraits::LocationType;
@@ -168,5 +169,21 @@ namespace CPP_SERIALIZER_NAMESPACE::internal {
         target.SetLocation(location);
     }
 
+    template<YesNoRuntime wordwrap_, TargetConcept TargetType, DataConcept DataType>
+    void EmitText(const DataType &source, TargetType &target, std::array<bool, 1> settings, size_t wrapwidth) {
+        //extract necessary types
+        using DataTraits   = DataType::DataTraits;
 
+        //mixed time options
+        const bool wordwrap = GetMixedTimeOption<wordwrap_, 0>(settings);
+
+        if(wordwrap) {
+
+        }
+        else {
+            typename DataTraits::DataEmitterType emitter{};
+            
+            target.Put(emitter(source.GetData()));
+        }
+    }
 }

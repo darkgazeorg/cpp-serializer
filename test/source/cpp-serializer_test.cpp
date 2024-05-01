@@ -126,3 +126,26 @@ TEST_CASE("Test text reader skiplist", "[Parse][Text][SkipList]") {
     loc = data.GetLocation(14);
     REQUIRE(loc.LineOffset == 3); REQUIRE(loc.CharOffset == 1);
 }
+
+TEST_CASE("Test text emit simple", "[Emit][Text]") {
+    std::string target;
+    TextTransport<>::DataType data;
+    data.SetData("Hello world\n");
+    TextTransportSimple.Emit(data, target);
+
+    REQUIRE(target == "Hello world\n");
+}
+
+TEST_CASE("Test text emit simple", "[Emit][Text][WordWrap]") {
+    std::string target;
+    RuntimeTextTransport::DataType data;
+    RuntimeTextTransport transport;
+
+
+    transport.SetWrapWidth(10);
+    
+    data.SetData("Hello world here I am.");
+    transport.Emit(data, target);
+
+    REQUIRE(target == "Hello\nworld here\nI am");
+}

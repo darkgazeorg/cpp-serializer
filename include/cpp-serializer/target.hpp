@@ -4,7 +4,6 @@
 #include "cpp-serializer/concepts.hpp"
 #include "cpp-serializer/tmp.hpp"
 #include <cassert>
-#include <optional>
 #include <string>
 #include <string_view>
 
@@ -25,11 +24,48 @@ namespace CPP_SERIALIZER_NAMESPACE {
             target += data;
         }
         
+        void Put(char &data) {
+            target.push_back(data);
+        }
+        
         /// Returns the current location of the write pointer
         size_t Tell() const {
             return target.size();
         }
         
+        
+    private:
+        std::string &target;
+    };
+    
+    template<>
+    class Target<void> {
+    public:
+        /// The data emitted will be stored in the given string
+        Target() { }
+        
+        ~Target() {}
+    
+        void Put(const std::string_view &data) {
+            target += data;
+        }
+        
+        void Put(char &data) {
+            target.push_back(data);
+        }
+        
+        /// Returns the current location of the write pointer
+        size_t Tell() const {
+            return target.size();
+        }
+        
+        const std::string &Get() const {
+            return target;
+        }
+        
+        std::string Get() {
+            return target;
+        }
         
     private:
         std::string target;
@@ -57,7 +93,7 @@ namespace CPP_SERIALIZER_NAMESPACE {
     
     template<StringLike T_>
     struct make_target_type<true, T_> {
-        using Type = Target<std::string_view>;
+        using Type = Target<std::string>;
     };
     
     /**
@@ -77,8 +113,8 @@ namespace CPP_SERIALIZER_NAMESPACE {
         else if constexpr(HasImp<Target<std::decay<T_>>>) {
             return Target{obj};
         }
-        else if constexpr(std::is_convertible_v<T_, const std::string_view>) {
-            return Target<std::string_view>{obj};
+        else if constexpr(std::is_convertible_v<T_, const std::string>) {
+            return Target<std::string>{obj};
         }
         else return obj;
     }

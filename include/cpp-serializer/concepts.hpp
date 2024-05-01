@@ -225,8 +225,9 @@ namespace CPP_SERIALIZER_NAMESPACE {
      * This concept validates a data target that can be used to emit the data to.
      */
     template<class T_>
-    concept TargetConcept = requires (T_ t, std::string_view sv, const T_ ct) {
+    concept TargetConcept = requires (T_ t, std::string_view sv, char c, const T_ ct) {
         t.Put(sv);
+        t.Put(c);
     };
 
     template<class T_>

@@ -8,6 +8,7 @@
 #include "types.hpp"
 #include "data.hpp"
 #include "source.hpp"
+#include "target.hpp"
 
 #include <array>
 #include <string>
@@ -140,7 +141,7 @@ namespace CPP_SERIALIZER_NAMESPACE {
             CPPSER_READ_IF_RUNTIME(Folding, 1);
             CPPSER_READ_IF_RUNTIME(Glue, 2);
             
-            internal::parseText<Settings::SkipList, Settings::Folding, Settings::Glue>(reader, data, settings);
+            internal::ParseText<Settings::SkipList, Settings::Folding, Settings::Glue>(reader, data, settings);
         }
 
 
@@ -170,11 +171,18 @@ namespace CPP_SERIALIZER_NAMESPACE {
         }
         
         template<class T_>
-        void Emit(T_ &target, const DataType &data) {
+        void Emit(const DataType &data, T_ &target) {
             auto writer = make_target(target);
-            typename DataTraits::DataEmitterType emitter{};
-            
-            writer.Put(emitter(data.GetData()));
+            auto ww = size_t{80};
+
+            if constexpr(Settings::WordWrap != YesNoRuntime::No) {
+                ww = this->GetWrapWidth();
+            }
+
+            auto settings = std::array<bool, 1>{};
+            CPPSER_READ_IF_RUNTIME(WordWrap, 0);
+
+            internal::EmitText<Settings::WordWrap>(data, writer, settings, ww);
         }
     };
     
